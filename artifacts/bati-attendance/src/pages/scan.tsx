@@ -224,7 +224,7 @@ export default function ScanPage() {
       )}
 
       {(scanState.status === "ready" || scanState.status === "error") && (
-        <div className="absolute inset-0 flex items-end justify-center pb-16">
+        <div className="absolute inset-0 flex items-end justify-center pb-32">
           <button
             onClick={capture}
             className="w-20 h-20 rounded-full bg-white border-4 border-gray-300 shadow-xl active:scale-95 transition-transform"
