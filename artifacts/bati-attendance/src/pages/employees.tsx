@@ -99,84 +99,96 @@ export default function EmployeesPage() {
           @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700;900&display=swap');
 
           @media print {
-            @page { size: A4 portrait; margin: 10mm; }
+            /* A4 = 210×297mm, 8mm margins → 194×281mm usable */
+            @page { size: A4 portrait; margin: 8mm; }
 
             .print-page {
               display: grid;
-              grid-template-columns: repeat(2, 88mm);
-              gap: 6mm;
-              justify-content: center;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 4mm;
             }
 
-            /* Cut guide wrapper — dashed border shows where to cut */
+            /* Cut guide wrapper */
             .pc-wrap {
-              width: 88mm;
               break-inside: avoid;
               page-break-inside: avoid;
               padding: 2mm;
-              border: 0.4mm dashed #aaa;
+              border: 0.4mm dashed #999;
               border-radius: 7mm;
             }
 
-            /* Whole card — sage green background, rounded */
+            /* Card: fixed height so 2 rows fit on one A4 page */
+            /* 2 rows × 132mm + 4mm gap + 4mm wrap padding = 272mm < 281mm ✓ */
             .pc {
               width: 100%;
+              height: 128mm;
               background: #8fba9e;
               border-radius: 5mm;
               overflow: hidden;
               font-family: 'Noto Sans Khmer', sans-serif;
+              display: flex;
+              flex-direction: column;
             }
 
-            /* QR white polaroid frame inset in green zone */
+            /* QR zone grows to fill remaining space */
             .pc-qr-zone {
-              padding: 5mm 5mm 3mm;
+              flex: 1;
+              padding: 3mm 3mm 2mm;
+              display: flex;
+              align-items: stretch;
             }
 
             .pc-qr-frame {
+              flex: 1;
               background: #fff;
-              border-radius: 4mm;
-              padding: 4mm;
+              border-radius: 3mm;
+              padding: 3mm;
               line-height: 0;
-              box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+              box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+              display: flex;
+              align-items: center;
+              justify-content: center;
             }
 
             .pc-qr-frame svg {
               width: 100% !important;
-              height: auto !important;
+              height: 100% !important;
               display: block;
             }
 
-            /* Name + role still on green background */
+            /* Name + role on green */
             .pc-header {
-              padding: 3mm 5mm 5mm;
+              padding: 2mm 4mm 3mm;
+              flex-shrink: 0;
             }
 
             .pc-name {
-              font-size: 22pt;
+              font-size: 17pt;
               font-weight: 900;
               color: #111;
               line-height: 1.1;
             }
 
             .pc-role {
-              font-size: 9pt;
-              color: #2a6644;
+              font-size: 8pt;
+              color: #1e5c38;
               font-weight: 600;
-              margin-top: 1mm;
+              margin-top: 0.5mm;
             }
 
             /* White info section */
             .pc-info {
               background: #fff;
-              padding: 4mm 5mm 5mm;
+              padding: 3mm 4mm 3mm;
+              flex-shrink: 0;
             }
 
             .pc-info-row {
               display: flex;
               align-items: baseline;
               gap: 1.5mm;
-              margin-bottom: 2.5mm;
-              font-size: 9pt;
+              margin-bottom: 1.8mm;
+              font-size: 8.5pt;
             }
 
             .pc-info-label {
