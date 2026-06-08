@@ -108,14 +108,22 @@ export default function EmployeesPage() {
               justify-content: center;
             }
 
-            /* Whole card — sage green background, rounded */
-            .pc {
+            /* Cut guide wrapper — dashed border shows where to cut */
+            .pc-wrap {
               width: 88mm;
-              background: #8fba9e;
-              border-radius: 6mm;
-              overflow: hidden;
               break-inside: avoid;
               page-break-inside: avoid;
+              padding: 2mm;
+              border: 0.4mm dashed #aaa;
+              border-radius: 7mm;
+            }
+
+            /* Whole card — sage green background, rounded */
+            .pc {
+              width: 100%;
+              background: #8fba9e;
+              border-radius: 5mm;
+              overflow: hidden;
               font-family: 'Noto Sans Khmer', sans-serif;
             }
 
@@ -194,7 +202,8 @@ export default function EmployeesPage() {
             const role = emp.id.startsWith("ប្រធាន") ? "ប្រធាន" : "បុគ្គលិក";
 
             return (
-              <div key={emp.id} className="pc">
+              <div key={emp.id} className="pc-wrap">
+              <div className="pc">
                 {/* QR code in white polaroid frame on green */}
                 <div className="pc-qr-zone">
                   <div className="pc-qr-frame">
@@ -223,6 +232,7 @@ export default function EmployeesPage() {
                     <span className="pc-info-val">បាទី ហ្យូឡឌីង លីមីតធីត</span>
                   </div>
                 </div>
+              </div>
               </div>
             );
           })}
