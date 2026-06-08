@@ -241,7 +241,7 @@ export default function EmployeesPage() {
                   </div>
                   <div className="pc-info-row">
                     <span className="pc-info-label">ក្រុមហ៊ុន:</span>
-                    <span className="pc-info-val">បាទី ហ្យូឡឌីង លីមីតធីត</span>
+                    <span className="pc-info-val">បាទី ហូលឌីង</span>
                   </div>
                 </div>
               </div>
