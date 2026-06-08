@@ -98,9 +98,8 @@ export default function EmployeesPage() {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700;900&display=swap');
 
+          @media print {
           @page { size: A4 portrait; margin: 10mm; }
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { background: white; }
 
           .print-page {
             display: grid;
@@ -196,6 +195,7 @@ export default function EmployeesPage() {
             color: #666;
             margin-top: 1mm;
           }
+          } /* end @media print */
         `}</style>
 
         <div className="print-page">
