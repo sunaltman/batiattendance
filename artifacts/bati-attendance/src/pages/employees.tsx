@@ -123,39 +123,23 @@ export default function EmployeesPage() {
             box-shadow: 0 1px 4px rgba(0,0,0,0.10);
           }
 
-          /* Sky + hills illustration */
+          /* QR illustration area */
           .pc-art {
-            position: relative;
-            height: 40mm;
-            background: linear-gradient(to bottom, #b8dff0 0%, #d4eef9 55%, #d4eef9 55%);
-            overflow: hidden;
+            height: 44mm;
+            background: #e8f4f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1.5px solid #8bbfaa;
           }
 
-          /* Hills */
-          .pc-hills {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 18mm;
-          }
-
-          /* Cloud */
-          .pc-cloud {
-            position: absolute;
-            top: 6mm; left: 50%;
-            transform: translateX(-50%);
-            width: 22mm; height: 10mm;
-          }
-
-          /* QR code sits centred over the hills */
           .pc-qr-wrap {
-            position: absolute;
-            bottom: 3mm;
-            right: 3mm;
             background: white;
-            padding: 1.5mm;
+            padding: 2.5mm;
             border-radius: 2mm;
             border: 1px solid #8bbfaa;
             line-height: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
           }
 
           .pc-body {
@@ -221,26 +205,10 @@ export default function EmployeesPage() {
 
             return (
               <div key={emp.id} className="pc">
-                {/* Illustration area */}
+                {/* QR area — replaces the Canva illustration */}
                 <div className="pc-art">
-                  {/* Cloud SVG */}
-                  <svg className="pc-cloud" viewBox="0 0 88 36" fill="white" xmlns="http://www.w3.org/2000/svg">
-                    <ellipse cx="44" cy="24" rx="38" ry="12"/>
-                    <ellipse cx="30" cy="20" rx="22" ry="14"/>
-                    <ellipse cx="56" cy="18" rx="18" ry="12"/>
-                    <ellipse cx="44" cy="14" rx="20" ry="12"/>
-                  </svg>
-
-                  {/* Hills SVG */}
-                  <svg className="pc-hills" viewBox="0 0 332 68" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M0 68 Q40 20 100 35 Q160 50 200 25 Q250 0 332 30 L332 68 Z" fill="#5a9e3a"/>
-                    <path d="M0 68 Q60 30 130 45 Q190 58 240 38 Q290 18 332 42 L332 68 Z" fill="#78b84a"/>
-                    <path d="M0 68 Q80 45 160 52 Q230 58 332 50 L332 68 Z" fill="#8ec95a"/>
-                  </svg>
-
-                  {/* QR code */}
                   <div className="pc-qr-wrap">
-                    <QRCodeSVG value={qrData} size={62} level="M" />
+                    <QRCodeSVG value={qrData} size={100} level="M" />
                   </div>
                 </div>
 
