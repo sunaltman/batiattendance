@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @workspace/bati-attendance run build",
+  "outputDirectory": "artifacts/bati-attendance/dist/public",
+  "installCommand": "pnpm install",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
