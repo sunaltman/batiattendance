@@ -96,98 +96,104 @@ export default function EmployeesPage() {
       {/* ── Print layout ── */}
       <div className="hidden print:block">
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700;900&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700;900&display=swap');
 
-          @page { size: A4; margin: 8mm; }
-
-          * { box-sizing: border-box; }
-
-          body { margin: 0; background: white; }
+          @page { size: A4 portrait; margin: 10mm; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { background: white; }
 
           .print-page {
             display: grid;
             grid-template-columns: repeat(2, 88mm);
-            gap: 5mm;
+            gap: 6mm;
             justify-content: center;
           }
 
+          /* Card: portrait, matches template proportions */
           .pc {
             width: 88mm;
+            height: 124mm;
             background: #fff;
             border-radius: 5mm;
             border: 2.5px solid #8bbfaa;
             overflow: hidden;
             break-inside: avoid;
             page-break-inside: avoid;
+            display: flex;
+            flex-direction: column;
             font-family: 'Noto Sans Khmer', sans-serif;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.10);
           }
 
-          /* QR illustration area */
+          /* Top QR area — mint bg, ~60% of card height */
           .pc-art {
-            height: 44mm;
-            background: #e8f4f0;
+            flex: 0 0 70mm;
+            background: #dff0ea;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 1.5px solid #8bbfaa;
+            border-bottom: 2px solid #8bbfaa;
           }
 
-          .pc-qr-wrap {
-            background: white;
-            padding: 2.5mm;
-            border-radius: 2mm;
-            border: 1px solid #8bbfaa;
+          /* QR code white tile */
+          .pc-qr {
+            background: #fff;
+            padding: 3mm;
+            border-radius: 3mm;
+            border: 1.5px solid #8bbfaa;
             line-height: 0;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
           }
 
+          /* Force SVG to physical size */
+          .pc-qr svg {
+            width: 56mm !important;
+            height: 56mm !important;
+            display: block;
+          }
+
+          /* Info section */
           .pc-body {
-            padding: 3mm 4mm 4mm;
+            flex: 1;
+            padding: 3mm 4.5mm 3.5mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
           }
 
           .pc-name {
-            font-size: 15pt;
+            font-size: 16pt;
             font-weight: 900;
-            color: #1a1a1a;
-            line-height: 1.2;
-            margin-bottom: 0.5mm;
+            color: #111;
+            line-height: 1.15;
           }
 
           .pc-role {
-            font-size: 8.5pt;
+            font-size: 8pt;
             color: #3a9e7e;
             font-weight: 600;
-            margin-bottom: 2.5mm;
+            margin-top: 0.8mm;
           }
 
           .pc-divider {
-            height: 0.4mm;
-            background: #d0e8df;
-            margin-bottom: 2.5mm;
+            height: 0.5mm;
+            background: #c5e3d8;
+            margin: 2mm 0;
           }
+
+          .pc-fields { display: flex; flex-direction: column; gap: 1mm; }
 
           .pc-row {
             display: flex;
             align-items: baseline;
             gap: 1.5mm;
-            margin-bottom: 1.5mm;
-            font-size: 8pt;
+            font-size: 7.5pt;
           }
 
-          .pc-label {
-            font-weight: 700;
-            color: #2a2a2a;
-            white-space: nowrap;
-          }
-
-          .pc-value {
-            color: #444;
-          }
+          .pc-label { font-weight: 700; color: #1a1a1a; white-space: nowrap; }
+          .pc-val   { color: #444; }
 
           .pc-company {
-            font-size: 7.5pt;
-            color: #555;
+            font-size: 7pt;
+            color: #666;
             margin-top: 1mm;
           }
         `}</style>
@@ -205,25 +211,26 @@ export default function EmployeesPage() {
 
             return (
               <div key={emp.id} className="pc">
-                {/* QR area — replaces the Canva illustration */}
                 <div className="pc-art">
-                  <div className="pc-qr-wrap">
-                    <QRCodeSVG value={qrData} size={100} level="M" />
+                  <div className="pc-qr">
+                    <QRCodeSVG value={qrData} size={212} level="H" />
                   </div>
                 </div>
-
-                {/* Info body */}
                 <div className="pc-body">
-                  <div className="pc-name">{emp.name}</div>
-                  <div className="pc-role">{role} – {emp.department}</div>
-                  <div className="pc-divider" />
-                  <div className="pc-row">
-                    <span className="pc-label">អត្តលេខ:</span>
-                    <span className="pc-value">{emp.id}</span>
-                  </div>
-                  <div className="pc-row">
-                    <span className="pc-label">ចូលធ្វើការ:</span>
-                    <span className="pc-value">{emp.start_date} · {tenure} ឆ្នាំ</span>
+                  <div>
+                    <div className="pc-name">{emp.name}</div>
+                    <div className="pc-role">{role} – {emp.department}</div>
+                    <div className="pc-divider" />
+                    <div className="pc-fields">
+                      <div className="pc-row">
+                        <span className="pc-label">អត្តលេខ:</span>
+                        <span className="pc-val">{emp.id}</span>
+                      </div>
+                      <div className="pc-row">
+                        <span className="pc-label">ចូលធ្វើការ:</span>
+                        <span className="pc-val">{emp.start_date} · {tenure} ឆ្នាំ</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="pc-company">ក្រុមហ៊ុន: បាទី ហ្យូណេន លីមីតគឺតិត</div>
                 </div>
