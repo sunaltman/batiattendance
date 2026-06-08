@@ -99,103 +99,88 @@ export default function EmployeesPage() {
           @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;600;700;900&display=swap');
 
           @media print {
-          @page { size: A4 portrait; margin: 10mm; }
+            @page { size: A4 portrait; margin: 10mm; }
 
-          .print-page {
-            display: grid;
-            grid-template-columns: repeat(2, 88mm);
-            gap: 6mm;
-            justify-content: center;
+            .print-page {
+              display: grid;
+              grid-template-columns: repeat(2, 88mm);
+              gap: 6mm;
+              justify-content: center;
+            }
+
+            /* Whole card — sage green background, rounded */
+            .pc {
+              width: 88mm;
+              background: #8fba9e;
+              border-radius: 6mm;
+              overflow: hidden;
+              break-inside: avoid;
+              page-break-inside: avoid;
+              font-family: 'Noto Sans Khmer', sans-serif;
+            }
+
+            /* QR white polaroid frame inset in green zone */
+            .pc-qr-zone {
+              padding: 5mm 5mm 3mm;
+            }
+
+            .pc-qr-frame {
+              background: #fff;
+              border-radius: 4mm;
+              padding: 4mm;
+              line-height: 0;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+            }
+
+            .pc-qr-frame svg {
+              width: 100% !important;
+              height: auto !important;
+              display: block;
+            }
+
+            /* Name + role still on green background */
+            .pc-header {
+              padding: 3mm 5mm 5mm;
+            }
+
+            .pc-name {
+              font-size: 22pt;
+              font-weight: 900;
+              color: #111;
+              line-height: 1.1;
+            }
+
+            .pc-role {
+              font-size: 9pt;
+              color: #2a6644;
+              font-weight: 600;
+              margin-top: 1mm;
+            }
+
+            /* White info section */
+            .pc-info {
+              background: #fff;
+              padding: 4mm 5mm 5mm;
+            }
+
+            .pc-info-row {
+              display: flex;
+              align-items: baseline;
+              gap: 1.5mm;
+              margin-bottom: 2.5mm;
+              font-size: 9pt;
+            }
+
+            .pc-info-label {
+              font-weight: 700;
+              color: #111;
+              white-space: nowrap;
+            }
+
+            .pc-info-val {
+              color: #333;
+            }
           }
-
-          /* Card: portrait, matches template proportions */
-          .pc {
-            width: 88mm;
-            height: 124mm;
-            background: #fff;
-            border-radius: 5mm;
-            border: 2.5px solid #8bbfaa;
-            overflow: hidden;
-            break-inside: avoid;
-            page-break-inside: avoid;
-            display: flex;
-            flex-direction: column;
-            font-family: 'Noto Sans Khmer', sans-serif;
-          }
-
-          /* Top QR area — mint bg, ~60% of card height */
-          .pc-art {
-            flex: 0 0 70mm;
-            background: #dff0ea;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 2px solid #8bbfaa;
-          }
-
-          /* QR code white tile */
-          .pc-qr {
-            background: #fff;
-            padding: 3mm;
-            border-radius: 3mm;
-            border: 1.5px solid #8bbfaa;
-            line-height: 0;
-          }
-
-          /* Force SVG to physical size */
-          .pc-qr svg {
-            width: 56mm !important;
-            height: 56mm !important;
-            display: block;
-          }
-
-          /* Info section */
-          .pc-body {
-            flex: 1;
-            padding: 3mm 4.5mm 3.5mm;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-          }
-
-          .pc-name {
-            font-size: 16pt;
-            font-weight: 900;
-            color: #111;
-            line-height: 1.15;
-          }
-
-          .pc-role {
-            font-size: 8pt;
-            color: #3a9e7e;
-            font-weight: 600;
-            margin-top: 0.8mm;
-          }
-
-          .pc-divider {
-            height: 0.5mm;
-            background: #c5e3d8;
-            margin: 2mm 0;
-          }
-
-          .pc-fields { display: flex; flex-direction: column; gap: 1mm; }
-
-          .pc-row {
-            display: flex;
-            align-items: baseline;
-            gap: 1.5mm;
-            font-size: 7.5pt;
-          }
-
-          .pc-label { font-weight: 700; color: #1a1a1a; white-space: nowrap; }
-          .pc-val   { color: #444; }
-
-          .pc-company {
-            font-size: 7pt;
-            color: #666;
-            margin-top: 1mm;
-          }
-          } /* end @media print */
         `}</style>
 
         <div className="print-page">
@@ -206,33 +191,37 @@ export default function EmployeesPage() {
               department: emp.department,
               start_date: emp.start_date,
             });
-            const tenure = calcTenureYears(emp.start_date);
             const role = emp.id.startsWith("ប្រធាន") ? "ប្រធាន" : "បុគ្គលិក";
 
             return (
               <div key={emp.id} className="pc">
-                <div className="pc-art">
-                  <div className="pc-qr">
-                    <QRCodeSVG value={qrData} size={212} level="H" />
+                {/* QR code in white polaroid frame on green */}
+                <div className="pc-qr-zone">
+                  <div className="pc-qr-frame">
+                    <QRCodeSVG value={qrData} size={280} level="H" />
                   </div>
                 </div>
-                <div className="pc-body">
-                  <div>
-                    <div className="pc-name">{emp.name}</div>
-                    <div className="pc-role">{role} – {emp.department}</div>
-                    <div className="pc-divider" />
-                    <div className="pc-fields">
-                      <div className="pc-row">
-                        <span className="pc-label">អត្តលេខ:</span>
-                        <span className="pc-val">{emp.id}</span>
-                      </div>
-                      <div className="pc-row">
-                        <span className="pc-label">ចូលធ្វើការ:</span>
-                        <span className="pc-val">{emp.start_date} · {tenure} ឆ្នាំ</span>
-                      </div>
-                    </div>
+
+                {/* Name + role on green background */}
+                <div className="pc-header">
+                  <div className="pc-name">{emp.name}</div>
+                  <div className="pc-role">គូនាទី – {role} ({emp.department})</div>
+                </div>
+
+                {/* White info section */}
+                <div className="pc-info">
+                  <div className="pc-info-row">
+                    <span className="pc-info-label">អត្តលេខ:</span>
+                    <span className="pc-info-val">{emp.id}</span>
                   </div>
-                  <div className="pc-company">ក្រុមហ៊ុន: បាទី ហ្យូណេន លីមីតគឺតិត</div>
+                  <div className="pc-info-row">
+                    <span className="pc-info-label">លេខទូរស័ព្ទ:</span>
+                    <span className="pc-info-val"></span>
+                  </div>
+                  <div className="pc-info-row">
+                    <span className="pc-info-label">ក្រុមហ៊ុន:</span>
+                    <span className="pc-info-val">បាទី ហ្យូឡឌីង លីមីតធីត</span>
+                  </div>
                 </div>
               </div>
             );
