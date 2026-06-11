@@ -80,14 +80,29 @@ export default function DashboardPage() {
   const afternoonPresent = employees.filter((e) => e.afternoonLog).length;
   const absent = employees.filter((e) => !e.morningLog && !e.afternoonLog).length;
 
-  function ShiftBadge({ log, shift }: { log: AttendanceLog | null; shift: "morning" | "afternoon" }) {
-    if (log) {
-      return <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 text-green-700 text-base">✓</span>;
+  function fmt(ts: string | null) {
+    if (!ts) return null;
+    return new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  }
+
+  function ShiftCell({ log, shift }: { log: AttendanceLog | null; shift: "morning" | "afternoon" }) {
+    if (!log) {
+      if (isShiftClosed(shift)) {
+        return <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700 text-xs">✗</span>;
+      }
+      return <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-400 text-xs">○</span>;
     }
-    if (isShiftClosed(shift)) {
-      return <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700 text-xs">✗</span>;
-    }
-    return <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-400 text-xs">○</span>;
+    const inTime = fmt(log.checked_in_at);
+    const outTime = fmt(log.checked_out_at ?? null);
+    return (
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="text-xs text-green-700 font-semibold leading-tight">▶ {inTime}</span>
+        {outTime
+          ? <span className="text-xs text-blue-700 font-semibold leading-tight">■ {outTime}</span>
+          : <span className="text-xs text-orange-500 leading-tight">...</span>
+        }
+      </div>
+    );
   }
 
   function BonusBadge({ days, leaveUsed }: { days: number; leaveUsed: number }) {
@@ -182,10 +197,10 @@ export default function DashboardPage() {
                           <td className="px-4 py-3 font-khmer text-gray-900">{emp.name}</td>
                           <td className="px-4 py-3 text-gray-400 text-xs hidden sm:table-cell">{emp.id}</td>
                           <td className="px-3 py-3 text-center">
-                            <ShiftBadge log={emp.morningLog} shift="morning" />
+                            <ShiftCell log={emp.morningLog} shift="morning" />
                           </td>
                           <td className="px-3 py-3 text-center">
-                            <ShiftBadge log={emp.afternoonLog} shift="afternoon" />
+                            <ShiftCell log={emp.afternoonLog} shift="afternoon" />
                           </td>
                           <td className="px-3 py-3 text-center text-gray-700 hidden md:table-cell">
                             {emp.daysThisMonth}

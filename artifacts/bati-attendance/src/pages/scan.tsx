@@ -5,13 +5,17 @@ import { supabase } from "@/lib/supabase";
 import { getShift, getTodayDate } from "@/lib/utils";
 import type { Employee } from "@/lib/supabase";
 
+type ScanType = "check_in" | "check_out";
+
 type ScanState =
   | { status: "loading" }
   | { status: "ready" }
   | { status: "processing" }
   | { status: "error"; message: string }
-  | { status: "duplicate"; employee: Employee; shift: string }
-  | { status: "success"; employee: Employee; shift: "morning" | "afternoon"; time: string };
+  | { status: "done"; employee: Employee; shift: "morning" | "afternoon"; scanType: ScanType; time: string }
+  | { status: "complete"; employee: Employee; shift: string }; // both in+out already done
+
+const SHIFT_KH = { morning: "ព្រឹក", afternoon: "រសៀល" };
 
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -47,10 +51,7 @@ export default function ScanPage() {
       }
     }
     init();
-
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
+    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
   }, []);
 
   const capture = useCallback(async () => {
@@ -63,7 +64,6 @@ export default function ScanPage() {
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d")!;
     ctx.drawImage(video, 0, 0);
-
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     const [detections, qrResult] = await Promise.all([
@@ -72,37 +72,25 @@ export default function ScanPage() {
     ]);
 
     if (detections.length === 0) {
-      setScanState({
-        status: "error",
-        message: "មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកប្រើ QR ជិតមុខ",
-      });
+      setScanState({ status: "error", message: "មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកប្រើ QR ជិតមុខ" });
       return;
     }
-
     if (!qrResult) {
-      setScanState({
-        status: "error",
-        message: "មិនអាចស្កែន QR បាន — សូមប្រើកាតច្បាស់",
-      });
+      setScanState({ status: "error", message: "មិនអាចស្កែន QR បាន — សូមប្រើកាតច្បាស់" });
       return;
     }
 
-    let parsed: { id: string; name?: string; department?: string };
+    let parsed: { id: string };
     try {
       parsed = JSON.parse(qrResult.data);
-      if (!parsed.id) throw new Error("missing id");
+      if (!parsed.id) throw new Error();
     } catch {
       setScanState({ status: "error", message: "QR មិនត្រឹមត្រូវ — ទិន្នន័យខូច" });
       return;
     }
 
     const { data: emp, error: empErr } = await supabase
-      .from("employees")
-      .select("*")
-      .eq("id", parsed.id)
-      .eq("is_active", true)
-      .single();
-
+      .from("employees").select("*").eq("id", parsed.id).eq("is_active", true).single();
     if (empErr || !emp) {
       setScanState({ status: "error", message: `មិនរកឃើញបុគ្គលិក: ${parsed.id}` });
       return;
@@ -110,96 +98,89 @@ export default function ScanPage() {
 
     const shift = getShift();
     const today = getTodayDate();
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("km-KH", { hour: "2-digit", minute: "2-digit" });
 
+    // Check existing log for this employee + shift today
     const { data: existing } = await supabase
       .from("attendance_logs")
-      .select("id")
+      .select("id, checked_in_at, checked_out_at")
       .eq("employee_id", parsed.id)
       .eq("date", today)
       .eq("shift", shift)
       .maybeSingle();
 
-    if (existing) {
-      setScanState({
-        status: "duplicate",
-        employee: emp,
-        shift: shift === "morning" ? "ព្រឹក" : "រសៀល",
+    if (!existing) {
+      // No log yet → CHECK IN
+      const { error } = await supabase.from("attendance_logs").insert({
+        employee_id: parsed.id,
+        date: today,
+        shift,
+        checked_in_at: now.toISOString(),
+        checked_out_at: null,
+        verified: true,
       });
-      return;
+      if (error) { setScanState({ status: "error", message: `មានបញ្ហា: ${error.message}` }); return; }
+      setScanState({ status: "done", employee: emp, shift, scanType: "check_in", time: timeStr });
+
+    } else if (!existing.checked_out_at) {
+      // Checked in but not out yet → CHECK OUT
+      const { error } = await supabase
+        .from("attendance_logs")
+        .update({ checked_out_at: now.toISOString() })
+        .eq("id", existing.id);
+      if (error) { setScanState({ status: "error", message: `មានបញ្ហា: ${error.message}` }); return; }
+      setScanState({ status: "done", employee: emp, shift, scanType: "check_out", time: timeStr });
+
+    } else {
+      // Both check-in and check-out already recorded
+      setScanState({ status: "complete", employee: emp, shift: SHIFT_KH[shift] });
     }
-
-    const now = new Date();
-    const { error: insertErr } = await supabase.from("attendance_logs").insert({
-      employee_id: parsed.id,
-      date: today,
-      shift,
-      checked_in_at: now.toISOString(),
-      verified: true,
-    });
-
-    if (insertErr) {
-      setScanState({ status: "error", message: `មានបញ្ហា: ${insertErr.message}` });
-      return;
-    }
-
-    setScanState({
-      status: "success",
-      employee: emp,
-      shift,
-      time: now.toLocaleTimeString("km-KH", { hour: "2-digit", minute: "2-digit" }),
-    });
   }, [modelsLoaded]);
 
   const reset = () => setScanState({ status: "ready" });
 
-  if (scanState.status === "success") {
-    const shiftLabel = scanState.shift === "morning" ? "ព្រឹក" : "រសៀល";
+  // ── Success screen ──
+  if (scanState.status === "done") {
+    const isIn = scanState.scanType === "check_in";
+    const bg = isIn ? "bg-green-600" : "bg-blue-600";
+    const icon = isIn ? "→" : "←";
+    const label = isIn ? "ចូលធ្វើការ" : "ចេញពីការងារ";
     return (
-      <div className="fixed inset-0 bg-green-600 flex flex-col items-center justify-center text-white p-8 text-center">
-        <div className="text-6xl mb-6">✓</div>
-        <div className="text-4xl font-bold font-khmer mb-3">{scanState.employee.name}</div>
-        <div className="text-xl font-khmer mb-2">{scanState.employee.department}</div>
-        <div className="text-2xl font-khmer mb-2">វេន{shiftLabel}</div>
-        <div className="text-xl">{scanState.time}</div>
-        <button
-          onClick={reset}
-          className="mt-10 bg-white text-green-700 font-bold px-8 py-4 rounded-2xl text-xl min-h-[56px]"
-        >
+      <div className={`fixed inset-0 ${bg} flex flex-col items-center justify-center text-white p-8 text-center`}>
+        <div className="text-7xl mb-4 font-bold">{icon}</div>
+        <div className="text-4xl font-bold font-khmer mb-2">{scanState.employee.name}</div>
+        <div className="text-lg font-khmer mb-1 opacity-90">{scanState.employee.department}</div>
+        <div className="mt-4 bg-white/20 rounded-2xl px-8 py-4 text-center">
+          <div className="text-lg font-khmer font-semibold">{label} · វេន{SHIFT_KH[scanState.shift]}</div>
+          <div className="text-3xl font-bold mt-1">{scanState.time}</div>
+        </div>
+        <button onClick={reset} className="mt-10 bg-white text-gray-800 font-bold px-8 py-4 rounded-2xl text-xl min-h-[56px]">
           ស្កែនម្តងទៀត
         </button>
       </div>
     );
   }
 
-  if (scanState.status === "duplicate") {
+  // ── Both scans already done ──
+  if (scanState.status === "complete") {
     return (
       <div className="fixed inset-0 bg-yellow-500 flex flex-col items-center justify-center text-white p-8 text-center">
-        <div className="text-6xl mb-6">⚠</div>
-        <div className="text-2xl font-bold font-khmer mb-2">
-          បានកត់វត្តមានហើយ
-        </div>
-        <div className="text-xl font-khmer">
-          {scanState.employee.name} វេន{scanState.shift}
-        </div>
-        <button
-          onClick={reset}
-          className="mt-10 bg-white text-yellow-700 font-bold px-8 py-4 rounded-2xl text-xl min-h-[56px]"
-        >
+        <div className="text-6xl mb-6">✓✓</div>
+        <div className="text-2xl font-bold font-khmer mb-2">ស្កែនគ្រប់គ្រាន់ហើយ</div>
+        <div className="text-xl font-khmer">{scanState.employee.name} — វេន{scanState.shift}</div>
+        <div className="text-base font-khmer mt-2 opacity-90">ចូល និងចេញបានកត់ត្រាហើយ</div>
+        <button onClick={reset} className="mt-10 bg-white text-yellow-700 font-bold px-8 py-4 rounded-2xl text-xl min-h-[56px]">
           ស្កែនម្តងទៀត
         </button>
       </div>
     );
   }
 
+  // ── Camera view ──
   return (
     <div className="fixed inset-0 bg-black flex flex-col">
-      <video
-        ref={videoRef}
-        className="w-full h-full object-cover"
-        playsInline
-        muted
-        autoPlay
-      />
+      <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay />
       <canvas ref={canvasRef} className="hidden" />
 
       {scanState.status === "loading" && (
@@ -210,19 +191,16 @@ export default function ScanPage() {
           </div>
         </div>
       )}
-
       {scanState.status === "error" && (
         <div className="absolute top-6 left-4 right-4 bg-red-600 rounded-2xl p-4 text-white text-center font-khmer text-lg">
           {scanState.message}
         </div>
       )}
-
       {scanState.status === "processing" && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50">
           <div className="animate-spin w-16 h-16 border-4 border-white border-t-transparent rounded-full" />
         </div>
       )}
-
       {(scanState.status === "ready" || scanState.status === "error") && (
         <div className="absolute inset-0 flex items-end justify-center pb-32">
           <button
@@ -232,7 +210,6 @@ export default function ScanPage() {
           />
         </div>
       )}
-
       <div className="absolute top-4 left-0 right-0 flex justify-center">
         <span className="bg-black/40 text-white font-khmer px-4 py-2 rounded-full text-sm">
           ចង្អុលកាមេរ៉ាទៅបុគ្គលិក ➜ ចុចថតរូប

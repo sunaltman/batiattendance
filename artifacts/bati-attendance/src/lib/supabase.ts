@@ -23,6 +23,7 @@ export type AttendanceLog = {
   date: string;
   shift: "morning" | "afternoon";
   checked_in_at: string;
+  checked_out_at: string | null;
   verified: boolean;
 };
 
