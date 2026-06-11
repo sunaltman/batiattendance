@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ScanPage from "@/pages/scan";
 import DashboardPage from "@/pages/dashboard";
 import EmployeesPage from "@/pages/employees";
+import LeavePage from "@/pages/leave";
 
 const queryClient = new QueryClient();
 
@@ -13,6 +14,7 @@ function NavBar() {
   const links = [
     { href: "/scan", label: "ស្កែន", icon: "📷" },
     { href: "/dashboard", label: "Dashboard", icon: "📊" },
+    { href: "/leave", label: "ច្បាប់", icon: "📋" },
     { href: "/employees", label: "បុគ្គលិក", icon: "👥" },
   ];
 
@@ -59,6 +61,7 @@ function Router() {
           <Route path="/" component={() => { window.location.replace(import.meta.env.BASE_URL + "scan"); return null; }} />
           <Route path="/scan" component={ScanPage} />
           <Route path="/dashboard" component={DashboardPage} />
+          <Route path="/leave" component={LeavePage} />
           <Route path="/employees" component={EmployeesPage} />
           <Route component={NotFound} />
         </Switch>
