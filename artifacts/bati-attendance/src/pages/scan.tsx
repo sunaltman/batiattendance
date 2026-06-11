@@ -5,6 +5,21 @@ import { supabase } from "@/lib/supabase";
 import { getShift, getTodayDate } from "@/lib/utils";
 import type { Employee } from "@/lib/supabase";
 
+const TG_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN as string | undefined;
+const TG_CHAT  = import.meta.env.VITE_TELEGRAM_CHAT_ID  as string | undefined;
+
+async function sendToTelegram(canvas: HTMLCanvasElement, caption: string) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  try {
+    const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.85));
+    const fd = new FormData();
+    fd.append("chat_id", TG_CHAT);
+    fd.append("caption", caption);
+    fd.append("photo", blob, "scan.jpg");
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, { method: "POST", body: fd });
+  } catch { /* fire-and-forget, ignore errors */ }
+}
+
 type ScanType = "check_in" | "check_out";
 
 type ScanState =
@@ -54,16 +69,9 @@ export default function ScanPage() {
     return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
   }, []);
 
-  const capture = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || !modelsLoaded) return;
-    setScanState({ status: "processing" });
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+  /** Process a canvas that already has an image drawn on it */
+  const processCanvas = useCallback(async (canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(video, 0, 0);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     const [detections, qrResult] = await Promise.all([
@@ -101,7 +109,6 @@ export default function ScanPage() {
     const now = new Date();
     const timeStr = now.toLocaleTimeString("km-KH", { hour: "2-digit", minute: "2-digit" });
 
-    // Check existing log for this employee + shift today
     const { data: existing } = await supabase
       .from("attendance_logs")
       .select("id, checked_in_at, checked_out_at")
@@ -110,33 +117,63 @@ export default function ScanPage() {
       .eq("shift", shift)
       .maybeSingle();
 
+    let scanType: ScanType;
+
     if (!existing) {
-      // No log yet → CHECK IN
       const { error } = await supabase.from("attendance_logs").insert({
-        employee_id: parsed.id,
-        date: today,
-        shift,
-        checked_in_at: now.toISOString(),
-        checked_out_at: null,
-        verified: true,
+        employee_id: parsed.id, date: today, shift,
+        checked_in_at: now.toISOString(), checked_out_at: null, verified: true,
       });
       if (error) { setScanState({ status: "error", message: `មានបញ្ហា: ${error.message}` }); return; }
-      setScanState({ status: "done", employee: emp, shift, scanType: "check_in", time: timeStr });
-
+      scanType = "check_in";
     } else if (!existing.checked_out_at) {
-      // Checked in but not out yet → CHECK OUT
       const { error } = await supabase
-        .from("attendance_logs")
-        .update({ checked_out_at: now.toISOString() })
-        .eq("id", existing.id);
+        .from("attendance_logs").update({ checked_out_at: now.toISOString() }).eq("id", existing.id);
       if (error) { setScanState({ status: "error", message: `មានបញ្ហា: ${error.message}` }); return; }
-      setScanState({ status: "done", employee: emp, shift, scanType: "check_out", time: timeStr });
-
+      scanType = "check_out";
     } else {
-      // Both check-in and check-out already recorded
       setScanState({ status: "complete", employee: emp, shift: SHIFT_KH[shift] });
+      return;
     }
-  }, [modelsLoaded]);
+
+    // Send to Telegram (fire-and-forget)
+    const label = scanType === "check_in" ? "ចូលធ្វើការ" : "ចេញពីការងារ";
+    sendToTelegram(canvas, `${emp.name} — ${label} | វេន${SHIFT_KH[shift]} | ${timeStr}`);
+
+    setScanState({ status: "done", employee: emp, shift, scanType, time: timeStr });
+  }, []);
+
+  const capture = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current || !modelsLoaded) return;
+    setScanState({ status: "processing" });
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(video, 0, 0);
+    await processCanvas(canvas);
+  }, [modelsLoaded, processCanvas]);
+
+  /** Handle photo file upload as alternative to camera */
+  const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !canvasRef.current || !modelsLoaded) return;
+    setScanState({ status: "processing" });
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = async () => {
+      const canvas = canvasRef.current!;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      await processCanvas(canvas);
+    };
+    img.src = url;
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  }, [modelsLoaded, processCanvas]);
 
   const reset = () => setScanState({ status: "ready" });
 
@@ -202,13 +239,23 @@ export default function ScanPage() {
         </div>
       )}
       {(scanState.status === "ready" || scanState.status === "error") && (
-        <div className="absolute inset-0 flex items-end justify-center pb-32">
-          <button
-            onClick={capture}
-            className="w-20 h-20 rounded-full bg-white border-4 border-gray-300 shadow-xl active:scale-95 transition-transform"
-            aria-label="ថតរូប"
-          />
-        </div>
+        <>
+          {/* Shutter button */}
+          <div className="absolute inset-0 flex items-end justify-center pb-32">
+            <button
+              onClick={capture}
+              className="w-20 h-20 rounded-full bg-white border-4 border-gray-300 shadow-xl active:scale-95 transition-transform"
+              aria-label="ថតរូប"
+            />
+          </div>
+          {/* Upload button */}
+          <div className="absolute bottom-12 right-4">
+            <label className="flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white px-4 py-2.5 rounded-full text-sm font-khmer cursor-pointer border border-white/30 active:bg-white/30 min-h-[44px]">
+              📁 Upload
+              <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+            </label>
+          </div>
+        </>
       )}
       <div className="absolute top-4 left-0 right-0 flex justify-center">
         <span className="bg-black/40 text-white font-khmer px-4 py-2 rounded-full text-sm">

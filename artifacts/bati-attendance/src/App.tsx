@@ -4,6 +4,8 @@ import ScanPage from "@/pages/scan";
 import DashboardPage from "@/pages/dashboard";
 import EmployeesPage from "@/pages/employees";
 import LeavePage from "@/pages/leave";
+import ImportPage from "@/pages/import";
+import FinancePage from "@/pages/finance";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +18,8 @@ function NavBar() {
     { href: "/dashboard", label: "Dashboard", icon: "📊" },
     { href: "/leave", label: "ច្បាប់", icon: "📋" },
     { href: "/employees", label: "បុគ្គលិក", icon: "👥" },
+    { href: "/finance", label: "ប្រាក់", icon: "💰" },
+    { href: "/import", label: "Import", icon: "📥" },
   ];
 
   return (
@@ -62,6 +66,8 @@ function Router() {
           <Route path="/scan" component={ScanPage} />
           <Route path="/dashboard" component={DashboardPage} />
           <Route path="/leave" component={LeavePage} />
+          <Route path="/finance" component={FinancePage} />
+          <Route path="/import" component={ImportPage} />
           <Route path="/employees" component={EmployeesPage} />
           <Route component={NotFound} />
         </Switch>

@@ -51,3 +51,45 @@ export function isShiftClosed(shift: "morning" | "afternoon"): boolean {
   return totalMins > 17 * 60;
 }
 
+/**
+ * Returns the leave year boundaries for an employee based on their work anniversary.
+ * Leave year runs from start_date anniversary to the day before next anniversary.
+ * E.g. start_date = 2015-03-01 → current leave year = 2025-03-01 to 2026-02-28
+ */
+export function getLeaveYearBounds(startDate: string): { from: string; to: string } {
+  const today = new Date();
+  const start = new Date(startDate);
+  const month = start.getMonth(); // 0-indexed
+  const day = start.getDate();
+
+  // Find the most recent anniversary on or before today
+  let fromYear = today.getFullYear();
+  let anniversaryThisYear = new Date(fromYear, month, day);
+  if (anniversaryThisYear > today) {
+    fromYear -= 1;
+    anniversaryThisYear = new Date(fromYear, month, day);
+  }
+
+  const toDate = new Date(fromYear + 1, month, day - 1);
+
+  return {
+    from: anniversaryThisYear.toISOString().split("T")[0],
+    to: toDate.toISOString().split("T")[0],
+  };
+}
+
+/**
+ * Sum leave days used in a specific calendar month (YYYY-MM).
+ */
+export function calcMonthlyLeaveUsed(
+  records: { date: string; type: "full" | "half" }[],
+  yearMonth: string // "YYYY-MM"
+): number {
+  return records
+    .filter((r) => r.date.startsWith(yearMonth))
+    .reduce((s, r) => s + (r.type === "full" ? 1 : 0.5), 0);
+}
+
+/** Max leave days allowed per calendar month */
+export const MONTHLY_LEAVE_CAP = 1.5;
+

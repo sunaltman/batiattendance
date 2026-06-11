@@ -1,62 +1,73 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import { EMPLOYEES, DEPARTMENTS } from "@/lib/employees";
-import { calcLeaveEntitlement, calcTenureYears } from "@/lib/utils";
+import {
+  calcLeaveEntitlement, calcTenureYears,
+  getLeaveYearBounds, calcMonthlyLeaveUsed, MONTHLY_LEAVE_CAP
+} from "@/lib/utils";
 import type { LeaveRecord } from "@/lib/supabase";
 
 type LeaveEntry = {
   employee_id: string;
   name: string;
   department: string;
+  start_date: string;
   entitlement: number;
   used: number;
   remaining: number;
   records: LeaveRecord[];
+  leaveYearFrom: string;
+  leaveYearTo: string;
 };
 
 type FormState = {
   open: boolean;
   employee_id: string;
   name: string;
+  start_date: string;
   date: string;
   type: "full" | "half";
   submitting: boolean;
   error: string;
 };
 
-const YEAR = new Date().getFullYear();
-
 export default function LeavePage() {
   const [entries, setEntries] = useState<LeaveEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [deptFilter, setDeptFilter] = useState("all");
   const [form, setForm] = useState<FormState>({
-    open: false, employee_id: "", name: "", date: new Date().toISOString().split("T")[0],
+    open: false, employee_id: "", name: "", start_date: "",
+    date: new Date().toISOString().split("T")[0],
     type: "full", submitting: false, error: "",
   });
 
   const load = useCallback(async () => {
+    // Fetch a wide range covering all possible leave years
     const { data: records } = await supabase
       .from("leave_records")
       .select("*")
-      .gte("date", `${YEAR}-01-01`)
-      .lte("date", `${YEAR}-12-31`)
       .order("date", { ascending: false });
 
     const allRecords: LeaveRecord[] = records ?? [];
 
     const data: LeaveEntry[] = EMPLOYEES.map((emp) => {
-      const empRecords = allRecords.filter((r) => r.employee_id === emp.id);
+      const bounds = getLeaveYearBounds(emp.start_date);
+      const empRecords = allRecords.filter(
+        (r) => r.employee_id === emp.id && r.date >= bounds.from && r.date <= bounds.to
+      );
       const used = empRecords.reduce((s, r) => s + (r.type === "full" ? 1 : 0.5), 0);
       const entitlement = calcLeaveEntitlement(emp.start_date);
       return {
         employee_id: emp.id,
         name: emp.name,
         department: emp.department,
+        start_date: emp.start_date,
         entitlement,
         used,
         remaining: entitlement - used,
         records: empRecords,
+        leaveYearFrom: bounds.from,
+        leaveYearTo: bounds.to,
       };
     });
 
@@ -67,18 +78,35 @@ export default function LeavePage() {
   useEffect(() => { load(); }, [load]);
 
   function openForm(emp: LeaveEntry) {
-    setForm(f => ({ ...f, open: true, employee_id: emp.employee_id, name: emp.name, error: "" }));
+    setForm(f => ({ ...f, open: true, employee_id: emp.employee_id, name: emp.name, start_date: emp.start_date, error: "" }));
   }
 
   async function submitLeave() {
     if (!form.date) { setForm(f => ({ ...f, error: "សូមជ្រើសរើសថ្ងៃ" })); return; }
 
-    // Check if already has leave on this date
-    const existing = entries
-      .find(e => e.employee_id === form.employee_id)
-      ?.records.find(r => r.date === form.date);
-    if (existing) {
+    const emp = entries.find(e => e.employee_id === form.employee_id);
+
+    // Check duplicate date
+    if (emp?.records.find(r => r.date === form.date)) {
       setForm(f => ({ ...f, error: "បានកត់ច្បាប់ថ្ងៃនេះរួចហើយ" })); return;
+    }
+
+    // Check monthly cap (1.5 days max per month)
+    const yearMonth = form.date.slice(0, 7); // YYYY-MM
+    const monthUsed = calcMonthlyLeaveUsed(emp?.records ?? [], yearMonth);
+    const newAmount = form.type === "full" ? 1 : 0.5;
+    if (monthUsed + newAmount > MONTHLY_LEAVE_CAP) {
+      const remaining = MONTHLY_LEAVE_CAP - monthUsed;
+      setForm(f => ({
+        ...f,
+        error: `លើស 1.5 ថ្ងៃ/ខែ — ខែនេះបានប្រើ ${monthUsed} ថ្ងៃ (នៅសល់ ${remaining} ថ្ងៃ)`
+      }));
+      return;
+    }
+
+    // Check annual balance
+    if (emp && emp.remaining < newAmount) {
+      setForm(f => ({ ...f, error: `ច្បាប់ប្រចាំឆ្នាំអស់ (នៅសល់ ${emp.remaining} ថ្ងៃ)` })); return;
     }
 
     setForm(f => ({ ...f, submitting: true, error: "" }));
@@ -158,9 +186,12 @@ export default function LeavePage() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="font-bold font-khmer text-gray-900">{emp.name}</div>
-                            <div className="text-xs text-gray-400">{emp.employee_id} · {calcTenureYears(
-                              EMPLOYEES.find(e => e.id === emp.employee_id)?.start_date ?? ""
-                            )} ឆ្នាំ</div>
+                            <div className="text-xs text-gray-400">
+                              {emp.employee_id} · {calcTenureYears(emp.start_date)} ឆ្នាំ
+                            </div>
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              ឆ្នាំច្បាប់: {emp.leaveYearFrom} → {emp.leaveYearTo}
+                            </div>
 
                             {/* Progress bar */}
                             <div className="mt-2 mb-1">
