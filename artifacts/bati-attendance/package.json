@@ -75,7 +75,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",
-    "face-api.js": "^0.22.2",
+    "@vladmandic/human": "^3.3.6",
+    "@vladmandic/human-models": "^3.0.4",
     "jsqr": "^1.4.0",
     "qrcode.react": "^4.2.0"
   }
