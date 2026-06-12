@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { XCircle, Minus, LogIn, LogOut, Download, Sunrise, Sunset, UserX } from "lucide-react";
+import { XCircle, Minus, LogIn, LogOut, Download, Sunrise, Sunset, UserX, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { EMPLOYEES, DEPARTMENTS } from "@/lib/employees";
 import { downloadCsv } from "@/lib/export";
 import {
   getTodayDate,
-  getMonthStart,
   isShiftClosed,
   calcLeaveEntitlement,
   calcLeaveUsed,
@@ -25,18 +24,28 @@ type EmpRow = Employee & {
 
 export default function DashboardPage() {
   const today = getTodayDate();
+  const [viewDate, setViewDate] = useState(today);
   const [employees, setEmployees] = useState<EmpRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [deptFilter, setDeptFilter] = useState<string>("all");
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
+  const isToday = viewDate === today;
+
+  function shiftDate(delta: number) {
+    const d = new Date(viewDate + "T12:00:00");
+    d.setDate(d.getDate() + delta);
+    const next = d.toISOString().split("T")[0];
+    if (next <= today) setViewDate(next);
+  }
+
   const load = useCallback(async () => {
-    const monthStart = getMonthStart();
+    const monthStart = viewDate.slice(0, 7) + "-01";
 
     const [empRes, logsRes, leaveRes] = await Promise.all([
       supabase.from("employees").select("*").eq("is_active", true),
-      supabase.from("attendance_logs").select("*").gte("date", monthStart),
-      supabase.from("leave_records").select("*").gte("date", monthStart),
+      supabase.from("attendance_logs").select("*").gte("date", monthStart).lte("date", viewDate),
+      supabase.from("leave_records").select("*").gte("date", monthStart).lte("date", viewDate),
     ]);
 
     const emps: Employee[] = empRes.data ?? [];
@@ -45,16 +54,14 @@ export default function DashboardPage() {
 
     const rows: EmpRow[] = emps.map((emp) => {
       const empLogs = logs.filter((l) => l.employee_id === emp.id);
-      const todayLogs = empLogs.filter((l) => l.date === today);
-      const morningLog = todayLogs.find((l) => l.shift === "morning") ?? null;
-      const afternoonLog = todayLogs.find((l) => l.shift === "afternoon") ?? null;
+      const dayLogs = empLogs.filter((l) => l.date === viewDate);
+      const morningLog = dayLogs.find((l) => l.shift === "morning") ?? null;
+      const afternoonLog = dayLogs.find((l) => l.shift === "afternoon") ?? null;
 
       const empLeaves = leaves.filter((l) => l.employee_id === emp.id);
       const leaveDays = empLeaves.map((l) => ({ type: l.type }));
 
-      const uniqueDays = new Set(
-        empLogs.filter((l) => l.date >= monthStart).map((l) => l.date)
-      ).size;
+      const uniqueDays = new Set(empLogs.map((l) => l.date)).size;
 
       return {
         ...emp,
@@ -69,13 +76,14 @@ export default function DashboardPage() {
     setEmployees(rows);
     setLoading(false);
     setLastRefresh(new Date());
-  }, [today]);
+  }, [viewDate]);
 
   useEffect(() => {
     load();
+    if (!isToday) return;
     const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, isToday]);
 
   const filtered = deptFilter === "all" ? employees : employees.filter((e) => e.department === deptFilter);
 
@@ -90,7 +98,7 @@ export default function DashboardPage() {
 
   function ShiftCell({ log, shift }: { log: AttendanceLog | null; shift: "morning" | "afternoon" }) {
     if (!log) {
-      if (isShiftClosed(shift)) {
+      if (!isToday || isShiftClosed(shift)) {
         return <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 text-red-700"><XCircle size={14} /></span>;
       }
       return <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-400"><Minus size={14} /></span>;
@@ -123,10 +131,26 @@ export default function DashboardPage() {
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</h1>
-            <p className="text-xs text-gray-400 mt-1">
-              បច្ចុប្បន្នភាពចុងក្រោយ៖ {lastRefresh.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
-              {loading && <span className="ml-2 animate-pulse">...</span>}
+            {/* Date navigator */}
+            <div className="flex items-center gap-1 mb-1">
+              <button onClick={() => shiftDate(-1)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><ChevronLeft size={18} /></button>
+              <input
+                type="date"
+                value={viewDate}
+                max={today}
+                onChange={e => e.target.value && e.target.value <= today && setViewDate(e.target.value)}
+                className="text-xl font-bold text-gray-900 bg-transparent border-none outline-none cursor-pointer"
+              />
+              <button onClick={() => shiftDate(1)} disabled={isToday} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30"><ChevronRight size={18} /></button>
+              {!isToday && (
+                <button onClick={() => setViewDate(today)} className="ml-1 text-xs font-semibold text-[#3D6B55] bg-[#EBF5EF] px-2 py-1 rounded-lg border border-[#A9CBB7] font-khmer">ថ្ងៃនេះ</button>
+              )}
+            </div>
+            <p className="text-xs text-gray-400">
+              {isToday
+                ? <>បច្ចុប្បន្នភាពចុងក្រោយ៖ {lastRefresh.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}{loading && <span className="ml-2 animate-pulse">...</span>}</>
+                : <span className="font-khmer">ទិន្នន័យប្រវត្តិសាស្ត្រ — {new Date(viewDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</span>
+              }
             </p>
           </div>
           <button
@@ -186,7 +210,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-3xl font-bold text-gray-900">{absent}</div>
             <div className={`text-xs mt-1 font-medium ${absent > 5 ? "text-red-500" : "text-gray-400"}`}>
-              {absent === 0 ? "Full attendance" : `${absent} missing today`}
+              {absent === 0 ? "Full attendance" : `${absent} missing`}
             </div>
           </div>
         </div>
