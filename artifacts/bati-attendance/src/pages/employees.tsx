@@ -132,8 +132,8 @@ export default function EmployeesPage() {
         idToDept[l.employee_id] ?? "",
         l.date,
         l.shift === "morning" ? "ព្រឹក" : "រសៀល",
-        l.checked_in_at ? new Date(l.checked_in_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "",
-        l.checked_out_at ? new Date(l.checked_out_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "",
+        l.checked_in_at ? new Date(l.checked_in_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "",
+        l.checked_out_at ? new Date(l.checked_out_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "",
         l.verified ? "✓" : "",
       ]);
     });

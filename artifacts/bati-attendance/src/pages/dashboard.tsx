@@ -83,7 +83,7 @@ export default function DashboardPage() {
 
   function fmt(ts: string | null) {
     if (!ts) return null;
-    return new Date(ts).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return new Date(ts).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
   }
 
   function ShiftCell({ log, shift }: { log: AttendanceLog | null; shift: "morning" | "afternoon" }) {
@@ -123,7 +123,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">{new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</h1>
             <p className="text-xs text-gray-400 mt-1">
-              បច្ចុប្បន្នភាពចុងក្រោយ៖ {lastRefresh.toLocaleTimeString()}
+              បច្ចុប្បន្នភាពចុងក្រោយ៖ {lastRefresh.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
               {loading && <span className="ml-2 animate-pulse">...</span>}
             </p>
           </div>
@@ -134,10 +134,10 @@ export default function DashboardPage() {
                 `Attendance_${todayStr}.csv`,
                 ["Name", "Department", "Employee ID", "Morning In", "Morning Out", "Afternoon In", "Afternoon Out", "Days This Month", "Leave Used", "Status"],
                 employees.map(e => {
-                  const mIn  = e.morningLog?.checked_in_at   ? new Date(e.morningLog.checked_in_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-                  const mOut = e.morningLog?.checked_out_at  ? new Date(e.morningLog.checked_out_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-                  const aIn  = e.afternoonLog?.checked_in_at  ? new Date(e.afternoonLog.checked_in_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
-                  const aOut = e.afternoonLog?.checked_out_at ? new Date(e.afternoonLog.checked_out_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+                  const mIn  = e.morningLog?.checked_in_at   ? new Date(e.morningLog.checked_in_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+                  const mOut = e.morningLog?.checked_out_at  ? new Date(e.morningLog.checked_out_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+                  const aIn  = e.afternoonLog?.checked_in_at  ? new Date(e.afternoonLog.checked_in_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+                  const aOut = e.afternoonLog?.checked_out_at ? new Date(e.afternoonLog.checked_out_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
                   const status = e.morningLog || e.afternoonLog ? "Present" : "Absent";
                   return [e.name, e.department, e.id, mIn, mOut, aIn, aOut, e.daysThisMonth, e.leaveUsed, status];
                 })

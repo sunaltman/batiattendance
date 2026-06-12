@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from "react";
-import * as faceapi from "face-api.js";
+import { Human } from "@vladmandic/human";
 import jsQR from "jsqr";
 import { Camera, FolderOpen, ArrowRight, ArrowLeft, CheckCheck, ScanFace, ShieldCheck, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -10,7 +10,27 @@ import type { Employee } from "@/lib/supabase";
 const TG_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN as string | undefined;
 const TG_CHAT  = import.meta.env.VITE_TELEGRAM_CHAT_ID  as string | undefined;
 const BUCKET   = "employee-faces";
-const FACE_MATCH_THRESHOLD = 0.55; // lower = stricter
+const FACE_MATCH_THRESHOLD = 0.5; // minimum similarity (0..1) — higher = stricter
+
+// @vladmandic/human — modern, maintained face detection/recognition
+// (BlazeFace detector + FaceMesh alignment + FaceRes 1024-dim embeddings)
+const human = new Human({
+  modelBasePath: `${import.meta.env.BASE_URL.replace(/\/$/, "")}/human-models`,
+  face: {
+    enabled: true,
+    detector: { rotation: true, maxDetected: 1 },
+    mesh: { enabled: true },
+    iris: { enabled: false },
+    emotion: { enabled: false },
+    description: { enabled: true }, // FaceRes embeddings
+    antispoof: { enabled: false },
+    liveness: { enabled: false },
+  },
+  body: { enabled: false },
+  hand: { enabled: false },
+  gesture: { enabled: false },
+  filter: { enabled: false },
+});
 
 function faceFilename(employeeId: string) {
   return encodeURIComponent(employeeId).replace(/%/g, "_") + ".jpg";
@@ -48,12 +68,10 @@ async function loadImageToCanvas(url: string): Promise<HTMLCanvasElement | null>
   });
 }
 
-async function extractDescriptor(canvas: HTMLCanvasElement): Promise<Float32Array | null> {
-  const det = await faceapi
-    .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks(true)
-    .withFaceDescriptor();
-  return det?.descriptor ?? null;
+async function extractEmbedding(canvas: HTMLCanvasElement): Promise<number[] | null> {
+  const res = await human.detect(canvas);
+  const emb = res.face[0]?.embedding;
+  return emb && emb.length > 0 ? emb : null;
 }
 
 type ScanType = "check_in" | "check_out";
@@ -74,24 +92,20 @@ export default function ScanPage() {
   const [modelsReady, setModelsReady] = useState(false);
   const [enrolledCount, setEnrolledCount] = useState(0);
   const [faceLoadStatus, setFaceLoadStatus] = useState<"loading"|"done"|"error">("loading");
-  // face recognition descriptors: employeeId → Float32Array
-  const descriptorsRef = useRef<Map<string, Float32Array>>(new Map());
+  // face recognition embeddings: employeeId → FaceRes 1024-dim embedding
+  const descriptorsRef = useRef<Map<string, number[]>>(new Map());
 
   const [result, setResult] = useState<{
     employee: Employee; shift: "morning"|"afternoon"; scanType: ScanType; time: string;
   } | null>(null);
   const [completeInfo, setCompleteInfo] = useState<{ name: string; shift: string } | null>(null);
 
-  // Load all 3 models, then preload face descriptors for enrolled employees
+  // Load human models, then preload face embeddings for enrolled employees
   useEffect(() => {
-    const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-    Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri(`${base}/models`),
-      faceapi.nets.faceLandmark68TinyNet.loadFromUri(`${base}/models`),
-      faceapi.nets.faceRecognitionNet.loadFromUri(`${base}/models`),
-    ]).then(async () => {
+    human.load().then(async () => {
+      await human.warmup(); // first inference is slow — do it now, not on first scan
       setModelsReady(true);
-      // Pre-compute descriptors for any employees who have photos
+      // Pre-compute embeddings for any employees who have photos
       const emps = EMPLOYEES as readonly { id: string }[];
       await Promise.all(emps.map(async (emp) => {
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(faceFilename(emp.id));
@@ -101,8 +115,8 @@ export default function ScanPage() {
         } catch { return; }
         const canvas = await loadImageToCanvas(data.publicUrl);
         if (!canvas) return;
-        const desc = await extractDescriptor(canvas);
-        if (desc) descriptorsRef.current.set(emp.id, desc);
+        const emb = await extractEmbedding(canvas);
+        if (emb) descriptorsRef.current.set(emp.id, emb);
       }));
       setEnrolledCount(descriptorsRef.current.size);
       setFaceLoadStatus("done");
@@ -133,28 +147,24 @@ export default function ScanPage() {
 
     // ── Face verification ──
     if (modelsReady) {
-      const storedDesc = descriptorsRef.current.get(parsed.id);
-      if (storedDesc) {
+      const storedEmb = descriptorsRef.current.get(parsed.id);
+      if (storedEmb) {
         // Employee has enrolled face — verify it matches
-        const liveDet = await faceapi
-          .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
-          .withFaceLandmarks(true)
-          .withFaceDescriptor();
-
-        if (!liveDet) {
+        const liveEmb = await extractEmbedding(canvas);
+        if (!liveEmb) {
           setErrorMsg("មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកបង្ហាញមុខ");
           lockedRef.current = false; setCamState("idle"); return;
         }
 
-        const distance = faceapi.euclideanDistance(liveDet.descriptor, storedDesc);
-        if (distance > FACE_MATCH_THRESHOLD) {
-          setErrorMsg(`មុខមិនត្រូវ (${(distance * 100).toFixed(0)}% ≠ បុគ្គលិក) — ការ៉ែស្ករ?`);
+        const similarity = human.match.similarity(liveEmb, storedEmb);
+        if (similarity < FACE_MATCH_THRESHOLD) {
+          setErrorMsg(`មុខមិនត្រូវ (${(similarity * 100).toFixed(0)}% ត្រូវគ្នា) — សូមព្យាយាមម្តងទៀត`);
           lockedRef.current = false; setCamState("idle"); return;
         }
       } else {
         // No enrolled face — require a face to be present (deters unattended QR cards)
-        const det = await faceapi.detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions());
-        if (!det) {
+        const res = await human.detect(canvas);
+        if (res.face.length === 0) {
           setErrorMsg("មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកបង្ហាញមុខ");
           lockedRef.current = false; setCamState("idle"); return;
         }
@@ -173,7 +183,7 @@ export default function ScanPage() {
     const shift   = getShift();
     const today   = getTodayDate();
     const now     = new Date();
-    const timeStr = now.toLocaleTimeString("km-KH", { hour: "2-digit", minute: "2-digit" });
+    const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
 
     const { data: existing } = await supabase
       .from("attendance_logs").select("id, checked_in_at, checked_out_at")

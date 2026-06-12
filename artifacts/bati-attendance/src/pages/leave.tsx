@@ -145,7 +145,6 @@ export default function LeavePage() {
         <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-gray-900 font-khmer">ច្បាប់ឈប់សម្រាកប្រចាំឆ្នាំ {new Date().getFullYear()}</h1>
-            <p className="text-xs text-gray-500 mt-0.5">១៨ ថ្ងៃ (&lt;១០ ឆ្នាំ) · ១៩ ថ្ងៃ (១០+ ឆ្នាំ) · យ៉ាងច្រើន ១.៥ ថ្ងៃ/ខែ</p>
           </div>
           <button
             onClick={() => {

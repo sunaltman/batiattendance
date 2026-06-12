@@ -148,7 +148,6 @@ export default function FinancePage() {
         <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
           <div>
             <h1 className="text-xl font-bold text-gray-900 font-khmer">បើកប្រាក់បៀវត្សរ៍</h1>
-            <p className="text-xs text-gray-500 mt-0.5 font-khmer">លក្ខខណ្ឌប្រាក់រង្វាន់៖ ២៦ ថ្ងៃ = ${FULL_BONUS} · អវត្តមាន ១ ថ្ងៃ = ${PARTIAL_BONUS} · អវត្តមាន ២ ថ្ងៃឡើង = $0</p>
           </div>
           <div className="flex gap-2 items-center flex-wrap">
             <select
