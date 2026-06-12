@@ -100,7 +100,7 @@ export default function ImportPage() {
       <div className="max-w-lg mx-auto px-4 py-6">
         <h1 className="text-xl font-bold font-khmer text-gray-900 mb-1">Import ទិន្នន័យ Excel</h1>
         <p className="text-sm text-gray-500 mb-6">
-          ទិន្នន័យ ១៥ ខែ (មីនា ២០២៥ – ឧសភា ២០២៦) ពីសំណួរ Excel
+          ទិន្នន័យ ៥ ខែ (មករា – ឧសភា ២០២៦) ពី Google Sheets
         </p>
 
         {/* Source summary */}
