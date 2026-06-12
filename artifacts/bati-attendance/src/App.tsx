@@ -1,5 +1,8 @@
-import { Switch, Route, Router as WouterRouter, Link, useLocation } from "wouter";
+import { Component, type ReactNode } from "react";
+import { Switch, Route, Router as WouterRouter, Link, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QrCode, LayoutDashboard, Calendar, DollarSign, Users, type LucideIcon } from "lucide-react";
+import { Toaster } from "sonner";
 import ScanPage from "@/pages/scan";
 import DashboardPage from "@/pages/dashboard";
 import EmployeesPage from "@/pages/employees";
@@ -10,13 +13,37 @@ import FinancePage from "@/pages/finance";
 const queryClient = new QueryClient();
 
 // Keep to 5 items max for mobile nav — Import moved off nav (still accessible via URL)
-const NAV_LINKS = [
-  { href: "/scan",      label: "ស្កែន",    icon: "📷" },
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/leave",     label: "ច្បាប់",   icon: "📋" },
-  { href: "/finance",   label: "ប្រាក់",   icon: "💰" },
-  { href: "/employees", label: "បុគ្គលិក", icon: "👥" },
+const NAV_LINKS: { href: string; label: string; Icon: LucideIcon }[] = [
+  { href: "/scan",      label: "ស្កែន",              Icon: QrCode },
+  { href: "/dashboard", label: "ផ្ទាំងគ្រប់គ្រង",   Icon: LayoutDashboard },
+  { href: "/leave",     label: "ច្បាប់ឈប់",          Icon: Calendar },
+  { href: "/finance",   label: "ប្រាក់បៀវត្សរ៍",    Icon: DollarSign },
+  { href: "/employees", label: "បុគ្គលិក",           Icon: Users },
 ];
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
+          <div className="text-lg font-bold text-gray-800 mb-2">មានបញ្ហាអ្វីមួយខុសប្រក្រតី</div>
+          <div className="text-sm text-gray-500 mb-6 font-mono break-all max-w-sm">
+            {(this.state.error as Error).message}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-[#5E8B73] text-white px-6 py-3 rounded-xl font-semibold"
+          >
+            ផ្ទុកឡើងវិញ
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function NavBar() {
   const [location] = useLocation();
@@ -26,18 +53,18 @@ function NavBar() {
       className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 print:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)" }}
     >
-      <div className="flex">
-        {NAV_LINKS.map(({ href, label, icon }) => {
+      <div className="flex max-w-2xl mx-auto">
+        {NAV_LINKS.map(({ href, label, Icon }) => {
           const active = location === href || location.startsWith(href + "/");
           return (
             <Link
               key={href}
               href={href}
-              className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[52px] transition-colors font-khmer text-xs gap-0.5 ${
-                active ? "text-blue-600 bg-blue-50" : "text-gray-500"
+              className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[52px] transition-colors text-xs gap-0.5 ${
+                active ? "text-[#3D6B55] bg-[#EBF5EF]" : "text-gray-500"
               }`}
             >
-              <span className="text-lg leading-none">{icon}</span>
+              <Icon size={18} />
               <span className="leading-tight">{label}</span>
             </Link>
           );
@@ -52,8 +79,8 @@ function NotFound() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
         <div className="text-6xl mb-4">404</div>
-        <div className="font-khmer text-gray-600">ទំព័រមិនមាន</div>
-        <Link href="/scan" className="mt-4 inline-block text-blue-600 underline font-khmer">ត្រឡប់ទៅ</Link>
+        <div className="text-gray-600">រកមិនឃើញទំព័រទេ</div>
+        <Link href="/scan" className="mt-4 inline-block text-blue-600 underline">ត្រឡប់ក្រោយ</Link>
       </div>
     </div>
   );
@@ -65,7 +92,9 @@ function Router() {
       {/* Bottom padding = nav height + iOS home indicator */}
       <div style={{ paddingBottom: "calc(52px + env(safe-area-inset-bottom, 4px))" }}>
         <Switch>
-          <Route path="/" component={() => { window.location.replace("/scan"); return null; }} />
+          <Route path="/">
+            <Redirect to="/scan" />
+          </Route>
           <Route path="/scan"      component={ScanPage} />
           <Route path="/dashboard" component={DashboardPage} />
           <Route path="/employees" component={EmployeesPage} />
@@ -82,12 +111,18 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      {/* No base prop — use root-relative paths so iOS standalone routing works correctly */}
-      <WouterRouter>
-        <Router />
-      </WouterRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <WouterRouter>
+          <Router />
+        </WouterRouter>
+        <Toaster
+          position="top-center"
+          richColors
+          toastOptions={{ duration: 3500 }}
+        />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

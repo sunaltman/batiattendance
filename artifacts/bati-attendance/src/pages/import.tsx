@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
+import { CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type ImportData = {
-  attendance: {
+  attendance_logs: {
     employee_id: string;
     date: string;
     shift: "morning" | "afternoon";
     checked_in_at: string;
-    checked_out_at: string;
+    checked_out_at: string | null;
     verified: boolean;
   }[];
-  leave: {
+  leave_records: {
     employee_id: string;
     date: string;
     type: "full" | "half";
@@ -58,24 +59,24 @@ export default function ImportPage() {
 
     // ── Attendance logs ──
     setStatusMsg("កំពុង import វត្តមាន...");
-    const attBatches = chunkArray(data.attendance, BATCH);
+    const attBatches = chunkArray(data.attendance_logs, BATCH);
     for (let i = 0; i < attBatches.length; i++) {
       const { error } = await supabase
         .from("attendance_logs")
         .upsert(attBatches[i], { onConflict: "employee_id,date,shift", ignoreDuplicates: true });
       if (error) errors++;
-      setProgress((p) => ({ ...p, attendance: Math.min(data.attendance.length, (i + 1) * BATCH), errors: p.errors + (error ? 1 : 0) }));
+      setProgress((p) => ({ ...p, attendance: Math.min(data.attendance_logs.length, (i + 1) * BATCH), errors: p.errors + (error ? 1 : 0) }));
     }
 
     // ── Leave records ──
     setStatusMsg("កំពុង import ច្បាប់...");
-    const leaveBatches = chunkArray(data.leave, BATCH);
+    const leaveBatches = chunkArray(data.leave_records, BATCH);
     for (let i = 0; i < leaveBatches.length; i++) {
       const { error } = await supabase
         .from("leave_records")
         .upsert(leaveBatches[i], { onConflict: "employee_id,date", ignoreDuplicates: true });
       if (error) errors++;
-      setProgress((p) => ({ ...p, leave: Math.min(data.leave.length, (i + 1) * BATCH), errors: p.errors + (error ? 1 : 0) }));
+      setProgress((p) => ({ ...p, leave: Math.min(data.leave_records.length, (i + 1) * BATCH), errors: p.errors + (error ? 1 : 0) }));
     }
 
     setStatusMsg(errors > 0 ? `រួចរាល់ (${errors} batch errors)` : "Import ជោគជ័យ!");
@@ -89,8 +90,8 @@ export default function ImportPage() {
     setExisting({ attendance: attRes.count ?? 0, leave: leaveRes.count ?? 0 });
   }
 
-  const attPct = data ? Math.round((progress.attendance / data.attendance.length) * 100) : 0;
-  const leavePct = data ? Math.round((progress.leave / data.leave.length) * 100) : 0;
+  const attPct = data ? Math.round((progress.attendance / data.attendance_logs.length) * 100) : 0;
+  const leavePct = data ? Math.round((progress.leave / data.leave_records.length) * 100) : 0;
   const isRunning = phase === "running";
   const alreadyImported = existing && existing.attendance > 500;
 
@@ -108,11 +109,11 @@ export default function ImportPage() {
             <div className="text-sm font-semibold text-gray-700 mb-3">ទិន្នន័យក្នុងឯកសារ</div>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-blue-50 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-blue-700">{data.attendance.length.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-blue-700">{data.attendance_logs.length.toLocaleString()}</div>
                 <div className="text-xs text-blue-600 font-khmer">កំណត់ត្រាវត្តមាន</div>
               </div>
               <div className="bg-green-50 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-green-700">{data.leave.length}</div>
+                <div className="text-2xl font-bold text-green-700">{data.leave_records.length}</div>
                 <div className="text-xs text-green-600 font-khmer">កំណត់ត្រាច្បាប់</div>
               </div>
             </div>
@@ -151,7 +152,7 @@ export default function ImportPage() {
             <div>
               <div className="flex justify-between text-xs text-gray-500 mb-1">
                 <span>វត្តមាន</span>
-                <span>{progress.attendance.toLocaleString()} / {data.attendance.length.toLocaleString()}</span>
+                <span>{progress.attendance.toLocaleString()} / {data.attendance_logs.length.toLocaleString()}</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-blue-500 rounded-full transition-all duration-300" style={{ width: `${attPct}%` }} />
@@ -161,7 +162,7 @@ export default function ImportPage() {
             <div>
               <div className="flex justify-between text-xs text-gray-500 mb-1">
                 <span>ច្បាប់</span>
-                <span>{progress.leave} / {data.leave.length}</span>
+                <span>{progress.leave} / {data.leave_records.length}</span>
               </div>
               <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-green-500 rounded-full transition-all duration-300" style={{ width: `${leavePct}%` }} />
@@ -204,7 +205,7 @@ export default function ImportPage() {
 
           {phase === "done" && (
             <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-              <div className="text-green-700 font-bold font-khmer text-lg">✓ {statusMsg}</div>
+              <div className="text-green-700 font-bold font-khmer text-lg flex items-center gap-2"><CheckCircle size={18} /> {statusMsg}</div>
               <div className="text-sm text-green-600 mt-1">
                 {existing?.attendance.toLocaleString()} វត្តមាន · {existing?.leave} ច្បាប់
               </div>

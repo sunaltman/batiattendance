@@ -31,9 +31,9 @@ export const EMPLOYEES = [
   { id: "G-01-067", name: "ពុធ រ៉ា", department: "ក្រុមវេចខ្ចប់", start_date: "2012-02-01" },
   { id: "S-01-049", name: "ទឹម ណាលីន", department: "ក្រុមវេចខ្ចប់", start_date: "2017-04-15" },
 
-  { id: "BT-0-004", name: "សូ វន្នី", department: "ក្រុមសម្ភារៈធេី្វសក់", start_date: "2015-08-01" },
-  { id: "S-01-027", name: "បុិច ប៊ុនធូក", department: "ក្រុមសម្ភារៈធេី្វសក់", start_date: "2017-03-15" },
-  { id: "P-027", name: "មុឺន ចិន្តា", department: "ក្រុមសម្ភារៈធេី្វសក់", start_date: "2010-10-01" },
+  { id: "BT-0-004", name: "សូ វន្នី", department: "ក្រុមសម្ភារៈធ្វើសក់", start_date: "2015-08-01" },
+  { id: "S-01-027", name: "បុិច ប៊ុនធូក", department: "ក្រុមសម្ភារៈធ្វើសក់", start_date: "2017-03-15" },
+  { id: "P-027", name: "មុឺន ចិន្តា", department: "ក្រុមសម្ភារៈធ្វើសក់", start_date: "2010-10-01" },
 
   { id: "W-001", name: "នួន ចាន់ថា", department: "ក្រុមឃ្លាំង", start_date: "2010-12-01" },
   { id: "W-002", name: "ជា សារ៉េត", department: "ក្រុមឃ្លាំង", start_date: "2014-06-15" },
@@ -42,12 +42,16 @@ export const EMPLOYEES = [
   { id: "W-005", name: "សរ សារី", department: "ក្រុមឃ្លាំង", start_date: "2019-07-01" },
   { id: "W-006", name: "វ៉ាន់ អេង", department: "ក្រុមឃ្លាំង", start_date: "2020-03-01" },
   { id: "W-007", name: "សនិ្តសុខ", department: "ក្រុមឃ្លាំង", start_date: "2024-10-01" },
+
+  { id: "T-001", name: "Yihan Dong", department: "Test", start_date: "2025-01-06" },
+  { id: "T-002", name: "Sun Ratanak", department: "Test", start_date: "2025-06-11" },
 ] as const;
 
 export const DEPARTMENTS = [
+  "Test",
   "ក្រុមសក់ត",
   "ក្រុមចាក់សក់",
   "ក្រុមវេចខ្ចប់",
-  "ក្រុមសម្ភារៈធេី្វសក់",
+  "ក្រុមសម្ភារៈធ្វើសក់",
   "ក្រុមឃ្លាំង",
 ] as const;

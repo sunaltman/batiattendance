@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@keyframes scan {
+  0%   { top: 4px; }
+  50%  { top: calc(100% - 4px); }
+  100% { top: 4px; }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -35,36 +41,47 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* ── Bati brand palette ── */
+  --color-brand:        #A9CBB7;  /* logo sage green */
+  --color-brand-dark:   #5E8B73;  /* action buttons */
+  --color-brand-darker: #3D6B55;  /* active text */
+  --color-brand-light:  #DFF0E7;  /* chips / active bg */
+  --color-brand-xlight: #F0F8F3;  /* hover / row highlight */
+  --color-bati-dark:    #1E2D26;  /* headings / dark variant */
 }
 
 :root {
-  --background: 210 20% 98%;
-  --foreground: 215 25% 15%;
-  --border: 215 15% 88%;
-  --input: 215 15% 88%;
-  --ring: 221 83% 53%;
+  /* Page background: barely-there sage tint */
+  --background: 145 25% 97%;
+  --foreground: 148 20% 12%;
+
+  --border: 148 18% 85%;
+  --input:  148 18% 85%;
+  --ring:   148 25% 55%;
 
   --card: 0 0% 100%;
-  --card-foreground: 215 25% 15%;
+  --card-foreground: 148 20% 12%;
 
-  --primary: 221 83% 53%;
+  /* Primary = brand action green */
+  --primary: 148 20% 45%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 215 15% 95%;
-  --secondary-foreground: 215 25% 25%;
+  --secondary: 148 18% 94%;
+  --secondary-foreground: 148 20% 20%;
 
-  --muted: 215 15% 95%;
-  --muted-foreground: 215 15% 50%;
+  --muted: 148 15% 93%;
+  --muted-foreground: 148 10% 45%;
 
-  --accent: 215 15% 95%;
-  --accent-foreground: 215 25% 15%;
+  --accent: 148 25% 88%;
+  --accent-foreground: 148 20% 18%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
   --app-font-sans: 'Inter', 'Noto Sans Khmer', sans-serif;
   --app-font-khmer: 'Noto Sans Khmer', sans-serif;
-  --radius: 0.5rem;
+  --radius: 0.625rem;
 }
 
 @layer base {
@@ -81,3 +98,19 @@
 .font-khmer {
   font-family: 'Noto Sans Khmer', sans-serif;
 }
+
+/* ── Bati brand utility classes ── */
+.btn-brand {
+  background-color: var(--color-brand-dark);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: background-color 0.15s;
+}
+.btn-brand:hover { background-color: var(--color-brand-darker); }
+.btn-brand:disabled { opacity: 0.5; }

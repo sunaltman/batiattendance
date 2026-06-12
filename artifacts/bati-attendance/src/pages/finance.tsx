@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
+import { Download, Check } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { EMPLOYEES, DEPARTMENTS } from "@/lib/employees";
+import { downloadCsv } from "@/lib/export";
 import type { Employee } from "@/lib/supabase";
 
 const FULL_BONUS = 16;
@@ -121,6 +124,7 @@ export default function FinancePage() {
       });
     }
     setPaying(null);
+    toast.success(row.paidAt ? "Marked as unpaid" : `$${row.bonus} marked as paid`);
     load();
   }
 
@@ -134,25 +138,51 @@ export default function FinancePage() {
     if (status === "full") return <span className="text-green-700 font-bold text-sm">${bonus}</span>;
     if (status === "partial") return <span className="text-yellow-600 font-bold text-sm">${bonus}</span>;
     if (status === "none") return <span className="text-red-500 font-bold text-sm">$0</span>;
-    return <span className="text-gray-400 text-xs font-khmer">មិនទាន់</span>;
+    return <span className="text-gray-400 text-xs">Pending</span>;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <div className="max-w-4xl mx-auto px-4 py-5">
         {/* Header */}
-        <div className="flex items-start justify-between mb-4 gap-3">
+        <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl font-bold font-khmer text-gray-900">ហិរញ្ញវត្ថុ / Payroll</h1>
-            <p className="text-xs text-gray-500 mt-0.5">ប្រាក់លើកទឹកចិត្ត: 26ថ្ងៃ=${FULL_BONUS} · ខ្វះ1ថ្ងៃ=${PARTIAL_BONUS} · ខ្វះ2+=$0</p>
+            <h1 className="text-xl font-bold text-gray-900 font-khmer">បើកប្រាក់បៀវត្សរ៍</h1>
+            <p className="text-xs text-gray-500 mt-0.5 font-khmer">លក្ខខណ្ឌប្រាក់រង្វាន់៖ ២៦ ថ្ងៃ = ${FULL_BONUS} · អវត្តមាន ១ ថ្ងៃ = ${PARTIAL_BONUS} · អវត្តមាន ២ ថ្ងៃឡើង = $0</p>
           </div>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white min-h-[40px] max-w-[180px]"
-          >
-            {monthOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div className="flex gap-2 items-center flex-wrap">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white min-h-[40px] max-w-[180px]"
+            >
+              {monthOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <button
+              onClick={() => {
+                const monthLabel = monthOpts.find(o => o.value === selectedMonth)?.label ?? selectedMonth;
+                downloadCsv(
+                  `Payroll_${selectedMonth}.csv`,
+                  ["Name", "Department", "Employee ID", "Present Days", "Leave Days", "Effective Days", "Absences", "Bonus ($)", "Paid", "Paid Date"],
+                  rows.map(r => [
+                    r.employee.name,
+                    r.employee.department,
+                    r.employee.id,
+                    r.presentDays,
+                    r.leavedays,
+                    r.effectiveDays,
+                    r.absences,
+                    r.bonusStatus === "pending" ? "Pending" : r.bonus,
+                    r.paidAt ? "Yes" : "No",
+                    r.paidAt ? new Date(r.paidAt).toLocaleDateString() : "",
+                  ])
+                );
+              }}
+              className="bg-[#5E8B73] hover:bg-[#3D6B55] text-white text-sm font-semibold px-4 py-2 rounded-lg min-h-[40px] flex items-center gap-1.5"
+            >
+              <Download size={16} /> ទាញយកទិន្នន័យ
+            </button>
+          </div>
         </div>
 
         {/* Summary cards */}
@@ -167,11 +197,11 @@ export default function FinancePage() {
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-3 text-center shadow-sm">
             <div className="text-xl font-bold text-red-600">${totalOwed}</div>
-            <div className="text-xs text-gray-500 font-khmer">នៅជំពាក់</div>
+            <div className="text-xs text-gray-500 font-khmer">មិនទាន់បើកប្រាក់</div>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-3 text-center shadow-sm">
-            <div className="text-xl font-bold text-blue-600">${totalPaid}</div>
-            <div className="text-xs text-gray-500 font-khmer">បានបង់</div>
+            <div className="text-xl font-bold text-[#3D6B55]">${totalPaid}</div>
+            <div className="text-xs text-gray-500 font-khmer">បានបើកប្រាក់</div>
           </div>
         </div>
 
@@ -179,8 +209,8 @@ export default function FinancePage() {
         <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto">
           {["all", ...DEPARTMENTS].map(d => (
             <button key={d} onClick={() => setDeptFilter(d)}
-              className={`px-3 py-1.5 rounded-full text-xs font-khmer border whitespace-nowrap min-h-[36px] ${
-                deptFilter === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-200"
+              className={`px-3 py-1.5 rounded-full text-xs border whitespace-nowrap min-h-[36px] ${
+                deptFilter === d ? "bg-[#5E8B73] text-white border-[#5E8B73]" : "bg-white text-gray-700 border-gray-200"
               }`}>
               {d === "all" ? "ទាំងអស់" : d}
             </button>
@@ -189,19 +219,19 @@ export default function FinancePage() {
 
         {/* Table */}
         {loading ? (
-          <div className="text-center py-16 text-gray-400 font-khmer">កំពុងផ្ទុក...</div>
+          <div className="text-center py-16 text-gray-400 text-sm font-khmer">កំពុងដំណើរការ...</div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="text-left px-4 py-3 font-khmer text-gray-600 font-semibold">ឈ្មោះ</th>
-                    <th className="text-center px-2 py-3 text-gray-600 font-semibold">ថ្ងៃ</th>
-                    <th className="text-center px-2 py-3 text-gray-600 font-semibold">ច្បាប់</th>
-                    <th className="text-center px-2 py-3 text-gray-600 font-semibold">សរុប</th>
-                    <th className="text-center px-2 py-3 text-gray-600 font-semibold">ប្រាក់</th>
-                    <th className="text-center px-3 py-3 text-gray-600 font-semibold">ស្ថានភាព</th>
+                    <th className="text-left px-4 py-3 text-gray-600 font-semibold font-khmer">ឈ្មោះ</th>
+                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">ថ្ងៃ</th>
+                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">ច្បាប់ឈប់</th>
+                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">សរុប</th>
+                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">ប្រាក់រង្វាន់</th>
+                    <th className="text-center px-3 py-3 text-gray-600 font-semibold font-khmer">ស្ថានភាព</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -210,8 +240,8 @@ export default function FinancePage() {
                     if (!deptRows.length) return null;
                     return [
                       deptFilter === "all" && (
-                        <tr key={`hdr-${dept}`} className="bg-blue-50">
-                          <td colSpan={6} className="px-4 py-1.5 font-bold text-blue-800 font-khmer text-xs">{dept}</td>
+                        <tr key={`hdr-${dept}`} className="bg-[#EBF5EF]">
+                          <td colSpan={6} className="px-4 py-1.5 font-bold text-[#1E2D26] font-khmer text-xs">{dept}</td>
                         </tr>
                       ),
                       ...deptRows.map((row) => (
@@ -221,7 +251,7 @@ export default function FinancePage() {
                             <div className="text-xs text-gray-400">{row.employee.id}</div>
                           </td>
                           <td className="px-2 py-2.5 text-center text-gray-700 font-semibold">{row.presentDays}</td>
-                          <td className="px-2 py-2.5 text-center text-blue-600 font-semibold">
+                          <td className="px-2 py-2.5 text-center text-[#3D6B55] font-semibold">
                             {row.leavedays > 0 ? `+${row.leavedays}` : "—"}
                           </td>
                           <td className="px-2 py-2.5 text-center">
@@ -234,22 +264,22 @@ export default function FinancePage() {
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             {row.bonusStatus === "pending" ? (
-                              <span className="text-xs text-gray-400 font-khmer">មិនទាន់</span>
+                              <span className="text-xs text-gray-400 font-khmer">កំពុងរង់ចាំ</span>
                             ) : row.paidAt ? (
                               <button
                                 onClick={() => markPaid(row)}
                                 disabled={paying === row.employee.id}
-                                className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold border border-green-200 min-h-[32px]"
+                                className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold border border-green-200 min-h-[32px] inline-flex items-center gap-1"
                               >
-                                ✓ បានបង់
+                                <Check size={12} /> បានបើកប្រាក់
                               </button>
                             ) : (
                               <button
                                 onClick={() => markPaid(row)}
                                 disabled={paying === row.employee.id || row.bonus === 0}
-                                className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold border border-orange-200 min-h-[32px] disabled:opacity-40"
+                                className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-semibold border border-orange-200 min-h-[32px] inline-flex items-center gap-1 disabled:opacity-40"
                               >
-                                {paying === row.employee.id ? "..." : "បង់ →"}
+                                {paying === row.employee.id ? "..." : <><Check size={12} /> <span className="font-khmer">កត់ត្រាថាបានបើក</span></>}
                               </button>
                             )}
                           </td>

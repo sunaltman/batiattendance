@@ -1,10 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
+import { Download, Plus, X } from "lucide-react";
+import { toast } from "sonner";
+import { CircleProgress } from "@/components/ui/circle-progress";
 import { supabase } from "@/lib/supabase";
 import { EMPLOYEES, DEPARTMENTS } from "@/lib/employees";
 import {
   calcLeaveEntitlement, calcTenureYears,
   getLeaveYearBounds, calcMonthlyLeaveUsed, MONTHLY_LEAVE_CAP
 } from "@/lib/utils";
+import { downloadCsv } from "@/lib/export";
 import type { LeaveRecord } from "@/lib/supabase";
 
 type LeaveEntry = {
@@ -121,6 +125,7 @@ export default function LeavePage() {
       return;
     }
     setForm(f => ({ ...f, open: false, submitting: false }));
+    toast.success("Leave recorded");
     load();
   }
 
@@ -137,20 +142,42 @@ export default function LeavePage() {
       <div className="max-w-3xl mx-auto px-4 py-5">
 
         {/* Header */}
-        <div className="mb-5">
-          <h1 className="text-xl font-bold text-gray-900 font-khmer">ការគ្រប់គ្រងច្បាប់ {YEAR}</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            ច្បាប់ប្រចាំឆ្នាំ: 18 ថ្ងៃ (អាយុការងារ &lt;10 ឆ្នាំ) · 19 ថ្ងៃ (10 ឆ្នាំ+)
-          </p>
-        </div>
-
-        {/* How-to info box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 text-sm font-khmer text-blue-800">
-          <div className="font-bold mb-1">របៀបកត់ច្បាប់</div>
-          <div className="flex flex-col gap-1 text-blue-700">
-            <span>📝 <strong>មុនថ្ងៃ:</strong> បុគ្គលិកបញ្ជូនសំបុត្រ → អ្នកគ្រប់គ្រងវាយបញ្ចូលនៅទីនេះ</span>
-            <span>📞 <strong>ថ្ងៃដូចគ្នា:</strong> បុគ្គលិកទូរស័ព្ទ → អ្នកគ្រប់គ្រងវាយបញ្ចូលនៅទីនេះ</span>
+        <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 font-khmer">ច្បាប់ឈប់សម្រាកប្រចាំឆ្នាំ {new Date().getFullYear()}</h1>
+            <p className="text-xs text-gray-500 mt-0.5">១៨ ថ្ងៃ (&lt;១០ ឆ្នាំ) · ១៩ ថ្ងៃ (១០+ ឆ្នាំ) · យ៉ាងច្រើន ១.៥ ថ្ងៃ/ខែ</p>
           </div>
+          <button
+            onClick={() => {
+              // Summary rows
+              const summaryRows = entries.map(e => [
+                e.name, e.department, e.employee_id,
+                e.leaveYearFrom, e.leaveYearTo,
+                e.entitlement, e.used, e.remaining,
+              ]);
+              // Detail rows (each leave record)
+              const detailRows: (string | number)[][] = [];
+              entries.forEach(e => {
+                e.records.forEach(r => {
+                  detailRows.push([e.name, e.department, e.employee_id, r.date, r.type === "full" ? "Full Day" : "Half Day"]);
+                });
+              });
+              downloadCsv(
+                `Leave_Summary_${new Date().getFullYear()}.csv`,
+                ["Name", "Department", "Employee ID", "Leave Year From", "Leave Year To", "Entitlement", "Used", "Remaining"],
+                summaryRows
+              );
+              // Small delay then export detail sheet
+              setTimeout(() => downloadCsv(
+                `Leave_Detail_${new Date().getFullYear()}.csv`,
+                ["Name", "Department", "Employee ID", "Date", "Type"],
+                detailRows
+              ), 300);
+            }}
+            className="bg-[#5E8B73] hover:bg-[#3D6B55] text-white text-sm font-semibold px-4 py-2 rounded-lg min-h-[40px] flex items-center gap-1.5 flex-shrink-0"
+          >
+            <Download size={16} /> ទាញយកទិន្នន័យ
+          </button>
         </div>
 
         {/* Dept filter */}
@@ -158,7 +185,7 @@ export default function LeavePage() {
           {["all", ...DEPARTMENTS].map(d => (
             <button key={d} onClick={() => setDeptFilter(d)}
               className={`px-3 py-1.5 rounded-full text-xs font-khmer border whitespace-nowrap min-h-[36px] ${
-                deptFilter === d ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-200"
+                deptFilter === d ? "bg-[#5E8B73] text-white border-[#5E8B73]" : "bg-white text-gray-700 border-gray-200"
               }`}>
               {d === "all" ? "ទាំងអស់" : d}
             </button>
@@ -167,7 +194,7 @@ export default function LeavePage() {
 
         {/* Employee list */}
         {loading ? (
-          <div className="text-center py-16 text-gray-400 font-khmer">កំពុងផ្ទុក...</div>
+          <div className="text-center py-16 text-gray-400 text-sm font-khmer">កំពុងដំណើរការ...</div>
         ) : (
           <div className="space-y-3">
             {DEPARTMENTS.map(dept => {
@@ -179,34 +206,30 @@ export default function LeavePage() {
                     <div className="text-xs font-bold text-gray-500 uppercase tracking-wide px-1 mb-2 mt-4">{dept}</div>
                   )}
                   {deptEntries.map(emp => {
-                    const pct = Math.min(100, (emp.used / emp.entitlement) * 100);
                     const danger = emp.remaining <= 3;
                     return (
                       <div key={emp.employee_id} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          {/* Circle progress */}
+                          <div className="relative flex-shrink-0 flex flex-col items-center">
+                            <CircleProgress value={emp.used} maxValue={emp.entitlement} size={56} strokeWidth={5} />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className={`text-[10px] font-bold ${danger ? "text-red-600" : "text-[#3D6B55]"}`}>
+                                {emp.remaining}d
+                              </span>
+                            </div>
+                          </div>
+
                           <div className="flex-1 min-w-0">
                             <div className="font-bold font-khmer text-gray-900">{emp.name}</div>
                             <div className="text-xs text-gray-400">
                               {emp.employee_id} · {calcTenureYears(emp.start_date)} ឆ្នាំ
                             </div>
-                            <div className="text-xs text-gray-400 mt-0.5">
-                              ឆ្នាំច្បាប់: {emp.leaveYearFrom} → {emp.leaveYearTo}
-                            </div>
-
-                            {/* Progress bar */}
-                            <div className="mt-2 mb-1">
-                              <div className="flex justify-between text-xs mb-1">
-                                <span className="text-gray-500">ប្រើ {emp.used}/{emp.entitlement} ថ្ងៃ</span>
-                                <span className={`font-bold ${danger ? "text-red-600" : "text-green-700"}`}>
-                                  នៅសល់ {emp.remaining} ថ្ងៃ
-                                </span>
-                              </div>
-                              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all ${danger ? "bg-red-500" : "bg-green-500"}`}
-                                  style={{ width: `${pct}%` }}
-                                />
-                              </div>
+                            <div className="text-xs font-khmer mt-0.5">
+                              <span className="text-gray-500">បានប្រើ {emp.used}/{emp.entitlement} ថ្ងៃ · </span>
+                              <span className={`font-semibold ${danger ? "text-red-600" : "text-[#3D6B55]"}`}>
+                                {emp.remaining} ថ្ងៃនៅសល់
+                              </span>
                             </div>
 
                             {/* Recent leave records */}
@@ -216,10 +239,10 @@ export default function LeavePage() {
                                   <div key={r.id} className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 text-xs">
                                     <span className="text-gray-600">{r.date}</span>
                                     <span className={`font-semibold ${r.type === "full" ? "text-orange-600" : "text-yellow-600"}`}>
-                                      {r.type === "full" ? "1ថ្ងៃ" : "½ថ្ងៃ"}
+                                      {r.type === "full" ? "ពេញ" : "កន្លះ"}
                                     </span>
                                     <button onClick={() => deleteLeave(r.id)}
-                                      className="text-gray-300 hover:text-red-500 ml-0.5 leading-none">×</button>
+                                      className="text-gray-300 hover:text-red-500 ml-0.5 leading-none flex items-center"><X size={12} /></button>
                                   </div>
                                 ))}
                                 {emp.records.length > 6 && (
@@ -233,9 +256,9 @@ export default function LeavePage() {
                           <button
                             onClick={() => openForm(emp)}
                             disabled={emp.remaining <= 0}
-                            className="flex-shrink-0 bg-blue-600 disabled:bg-gray-200 disabled:text-gray-400 text-white text-xs font-khmer font-bold px-3 py-2 rounded-lg min-h-[44px] min-w-[72px]"
+                            className="flex-shrink-0 bg-[#5E8B73] disabled:bg-gray-200 disabled:text-gray-400 text-white text-xs font-semibold px-3 py-2 rounded-lg min-h-[44px] min-w-[64px] flex items-center justify-center gap-1"
                           >
-                            + ច្បាប់
+                            <Plus size={14} /> បន្ថែម
                           </button>
                         </div>
                       </div>
@@ -252,36 +275,36 @@ export default function LeavePage() {
       {form.open && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
-            <h2 className="text-lg font-bold font-khmer text-gray-900 mb-1">កត់ច្បាប់</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1 font-khmer">កត់ត្រាការឈប់សម្រាក</h2>
             <p className="text-sm font-khmer text-gray-500 mb-4">{form.name}</p>
 
             <div className="space-y-4">
               {/* Date */}
               <div>
-                <label className="block text-sm font-semibold font-khmer text-gray-700 mb-1">ថ្ងៃឈប់</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1 font-khmer">ថ្ងៃខែឆ្នាំ</label>
                 <input
                   type="date"
                   value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#A9CBB7]"
                 />
               </div>
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-semibold font-khmer text-gray-700 mb-2">ប្រភេទ</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 font-khmer">ប្រភេទ</label>
                 <div className="grid grid-cols-2 gap-2">
                   {(["full", "half"] as const).map(t => (
                     <button
                       key={t}
                       onClick={() => setForm(f => ({ ...f, type: t }))}
-                      className={`py-3 rounded-xl border-2 font-khmer text-sm font-bold transition-colors ${
+                      className={`py-3 rounded-xl border-2 text-sm font-bold transition-colors ${
                         form.type === t
-                          ? "border-blue-600 bg-blue-50 text-blue-700"
+                          ? "border-[#5E8B73] bg-[#EBF5EF] text-[#3D6B55]"
                           : "border-gray-200 text-gray-600"
                       }`}
                     >
-                      {t === "full" ? "ឈប់ 1 ថ្ងៃ" : "ឈប់ ½ ថ្ងៃ"}
+                      {t === "full" ? "ពេញមួយថ្ងៃ" : "កន្លះថ្ងៃ"}
                     </button>
                   ))}
                 </div>
@@ -296,14 +319,14 @@ export default function LeavePage() {
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={() => setForm(f => ({ ...f, open: false }))}
-                  className="flex-1 py-3 rounded-xl border border-gray-200 font-khmer text-gray-600 font-semibold"
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold font-khmer"
                 >
                   បោះបង់
                 </button>
                 <button
                   onClick={submitLeave}
                   disabled={form.submitting}
-                  className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-khmer font-bold disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold disabled:opacity-50 font-khmer"
                 >
                   {form.submitting ? "..." : "រក្សាទុក"}
                 </button>
