@@ -12,25 +12,25 @@ const TG_CHAT  = import.meta.env.VITE_TELEGRAM_CHAT_ID  as string | undefined;
 const BUCKET   = "employee-faces";
 const FACE_MATCH_THRESHOLD = 0.5; // minimum similarity (0..1) — higher = stricter
 
-// @vladmandic/human — modern, maintained face detection/recognition
-// (BlazeFace detector + FaceMesh alignment + FaceRes 1024-dim embeddings)
-const human = new Human({
-  modelBasePath: `${import.meta.env.BASE_URL.replace(/\/$/, "")}/human-models`,
-  face: {
-    enabled: true,
-    detector: { rotation: true, maxDetected: 1 },
-    mesh: { enabled: true },
-    iris: { enabled: false },
-    emotion: { enabled: false },
-    description: { enabled: true }, // FaceRes embeddings
-    antispoof: { enabled: false },
-    liveness: { enabled: false },
-  },
-  body: { enabled: false },
-  hand: { enabled: false },
-  gesture: { enabled: false },
-  filter: { enabled: false },
-});
+function createHuman() {
+  return new Human({
+    modelBasePath: `${import.meta.env.BASE_URL.replace(/\/$/, "")}/human-models`,
+    face: {
+      enabled: true,
+      detector: { rotation: true, maxDetected: 1 },
+      mesh: { enabled: true },
+      iris: { enabled: false },
+      emotion: { enabled: false },
+      description: { enabled: true },
+      antispoof: { enabled: false },
+      liveness: { enabled: false },
+    },
+    body: { enabled: false },
+    hand: { enabled: false },
+    gesture: { enabled: false },
+    filter: { enabled: false },
+  });
+}
 
 function faceFilename(employeeId: string) {
   return encodeURIComponent(employeeId).replace(/%/g, "_") + ".jpg";
@@ -68,8 +68,8 @@ async function loadImageToCanvas(url: string): Promise<HTMLCanvasElement | null>
   });
 }
 
-async function extractEmbedding(canvas: HTMLCanvasElement): Promise<number[] | null> {
-  const res = await human.detect(canvas);
+async function extractEmbedding(h: Human, canvas: HTMLCanvasElement): Promise<number[] | null> {
+  const res = await h.detect(canvas);
   const emb = res.face[0]?.embedding;
   return emb && emb.length > 0 ? emb : null;
 }
@@ -86,6 +86,7 @@ export default function ScanPage() {
   const rafRef     = useRef<number>(0);
   const lockedRef  = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const humanRef = useRef<Human | null>(null);
 
   const [camState, setCamState]   = useState<CamState>("idle");
   const [errorMsg, setErrorMsg]   = useState("");
@@ -102,10 +103,11 @@ export default function ScanPage() {
 
   // Load human models, then preload face embeddings for enrolled employees
   useEffect(() => {
-    human.load().then(async () => {
-      await human.warmup(); // first inference is slow — do it now, not on first scan
+    const h = createHuman();
+    humanRef.current = h;
+    h.load().then(async () => {
+      await h.warmup();
       setModelsReady(true);
-      // Pre-compute embeddings for any employees who have photos
       const emps = EMPLOYEES as readonly { id: string }[];
       await Promise.all(emps.map(async (emp) => {
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(faceFilename(emp.id));
@@ -115,7 +117,7 @@ export default function ScanPage() {
         } catch { return; }
         const canvas = await loadImageToCanvas(data.publicUrl);
         if (!canvas) return;
-        const emb = await extractEmbedding(canvas);
+        const emb = await extractEmbedding(h, canvas);
         if (emb) descriptorsRef.current.set(emp.id, emb);
       }));
       setEnrolledCount(descriptorsRef.current.size);
@@ -146,24 +148,22 @@ export default function ScanPage() {
     catch { setErrorMsg("QR មិនត្រឹមត្រូវ"); lockedRef.current = false; setCamState("idle"); return; }
 
     // ── Face verification ──
-    if (modelsReady) {
+    const h = humanRef.current;
+    if (modelsReady && h) {
       const storedEmb = descriptorsRef.current.get(parsed.id);
       if (storedEmb) {
-        // Employee has enrolled face — verify it matches
-        const liveEmb = await extractEmbedding(canvas);
+        const liveEmb = await extractEmbedding(h, canvas);
         if (!liveEmb) {
           setErrorMsg("មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកបង្ហាញមុខ");
           lockedRef.current = false; setCamState("idle"); return;
         }
-
-        const similarity = human.match.similarity(liveEmb, storedEmb);
+        const similarity = h.match.similarity(liveEmb, storedEmb);
         if (similarity < FACE_MATCH_THRESHOLD) {
           setErrorMsg(`មុខមិនត្រូវ (${(similarity * 100).toFixed(0)}% ត្រូវគ្នា) — សូមព្យាយាមម្តងទៀត`);
           lockedRef.current = false; setCamState("idle"); return;
         }
       } else {
-        // No enrolled face — require a face to be present (deters unattended QR cards)
-        const res = await human.detect(canvas);
+        const res = await h.detect(canvas);
         if (res.face.length === 0) {
           setErrorMsg("មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកបង្ហាញមុខ");
           lockedRef.current = false; setCamState("idle"); return;
