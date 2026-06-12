@@ -1,164 +1,267 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import * as faceapi from "face-api.js";
 import jsQR from "jsqr";
+import { Camera, FolderOpen, ArrowRight, ArrowLeft, CheckCheck, ScanFace, ShieldCheck, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { EMPLOYEES } from "@/lib/employees";
 import { getShift, getTodayDate } from "@/lib/utils";
 import type { Employee } from "@/lib/supabase";
 
 const TG_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN as string | undefined;
 const TG_CHAT  = import.meta.env.VITE_TELEGRAM_CHAT_ID  as string | undefined;
+const BUCKET   = "employee-faces";
+const FACE_MATCH_THRESHOLD = 0.55; // lower = stricter
+
+function faceFilename(employeeId: string) {
+  return encodeURIComponent(employeeId).replace(/%/g, "_") + ".jpg";
+}
 
 async function sendToTelegram(canvas: HTMLCanvasElement, caption: string) {
   if (!TG_TOKEN || !TG_CHAT) return;
   try {
     const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.85));
     const fd = new FormData();
-    fd.append("chat_id", TG_CHAT);
-    fd.append("caption", caption);
-    fd.append("photo", blob, "scan.jpg");
+    fd.append("chat_id", TG_CHAT); fd.append("caption", caption); fd.append("photo", blob, "scan.jpg");
     await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, { method: "POST", body: fd });
   } catch { /* fire-and-forget */ }
 }
 
-type ScanType = "check_in" | "check_out";
+async function loadImageToCanvas(url: string): Promise<HTMLCanvasElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext("2d")!.drawImage(img, 0, 0);
+      resolve(c);
+    };
+    img.onerror = () => resolve(null);
+    img.src = url + "?t=" + Date.now();
+  });
+}
 
-type ScanState =
-  | { status: "idle" }
-  | { status: "preview"; dataUrl: string }
-  | { status: "processing" }
-  | { status: "error"; message: string }
-  | { status: "done"; employee: Employee; shift: "morning" | "afternoon"; scanType: ScanType; time: string }
-  | { status: "complete"; employee: Employee; shift: string };
+async function extractDescriptor(canvas: HTMLCanvasElement): Promise<Float32Array | null> {
+  const det = await faceapi
+    .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks(true)
+    .withFaceDescriptor();
+  return det?.descriptor ?? null;
+}
+
+type ScanType = "check_in" | "check_out";
+type CamState = "idle" | "starting" | "scanning" | "processing" | "done" | "complete" | "no_camera";
 
 const SHIFT_KH = { morning: "ព្រឹក", afternoon: "រសៀល" };
 
 export default function ScanPage() {
-  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const videoRef   = useRef<HTMLVideoElement>(null);
+  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const streamRef  = useRef<MediaStream | null>(null);
+  const rafRef     = useRef<number>(0);
+  const lockedRef  = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [scanState, setScanState]     = useState<ScanState>({ status: "idle" });
-  const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [previewUrl, setPreviewUrl]   = useState<string | null>(null);
 
-  // Load face models silently in background — camera works without them
+  const [camState, setCamState]   = useState<CamState>("idle");
+  const [errorMsg, setErrorMsg]   = useState("");
+  const [modelsReady, setModelsReady] = useState(false);
+  const [enrolledCount, setEnrolledCount] = useState(0);
+  const [faceLoadStatus, setFaceLoadStatus] = useState<"loading"|"done"|"error">("loading");
+  // face recognition descriptors: employeeId → Float32Array
+  const descriptorsRef = useRef<Map<string, Float32Array>>(new Map());
+
+  const [result, setResult] = useState<{
+    employee: Employee; shift: "morning"|"afternoon"; scanType: ScanType; time: string;
+  } | null>(null);
+  const [completeInfo, setCompleteInfo] = useState<{ name: string; shift: string } | null>(null);
+
+  // Load all 3 models, then preload face descriptors for enrolled employees
   useEffect(() => {
     const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-    faceapi.nets.tinyFaceDetector.loadFromUri(`${base}/models`)
-      .then(() => setModelsLoaded(true))
-      .catch(() => {});
+    Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(`${base}/models`),
+      faceapi.nets.faceLandmark68TinyNet.loadFromUri(`${base}/models`),
+      faceapi.nets.faceRecognitionNet.loadFromUri(`${base}/models`),
+    ]).then(async () => {
+      setModelsReady(true);
+      // Pre-compute descriptors for any employees who have photos
+      const emps = EMPLOYEES as readonly { id: string }[];
+      await Promise.all(emps.map(async (emp) => {
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(faceFilename(emp.id));
+        try {
+          const res = await fetch(data.publicUrl, { method: "HEAD" });
+          if (!res.ok) return;
+        } catch { return; }
+        const canvas = await loadImageToCanvas(data.publicUrl);
+        if (!canvas) return;
+        const desc = await extractDescriptor(canvas);
+        if (desc) descriptorsRef.current.set(emp.id, desc);
+      }));
+      setEnrolledCount(descriptorsRef.current.size);
+      setFaceLoadStatus("done");
+    }).catch(() => setFaceLoadStatus("error"));
   }, []);
 
-  const processCanvas = useCallback(async (canvas: HTMLCanvasElement) => {
+  const stopCamera = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const processFrame = useCallback(async (canvas: HTMLCanvasElement) => {
+    if (lockedRef.current) return;
     const ctx = canvas.getContext("2d")!;
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const qr = jsQR(imageData.data, imageData.width, imageData.height);
+    if (!qr) return;
 
-    // Run QR decode (always) + face check (only if models loaded)
-    const [detections, qrResult] = await Promise.all([
-      modelsLoaded
-        ? faceapi.detectAllFaces(canvas, new faceapi.TinyFaceDetectorOptions())
-        : Promise.resolve([{ score: 1 }] as any[]), // skip if no model
-      Promise.resolve(jsQR(imageData.data, imageData.width, imageData.height)),
-    ]);
+    lockedRef.current = true;
+    setCamState("processing");
+    cancelAnimationFrame(rafRef.current);
 
-    if (modelsLoaded && detections.length === 0) {
-      setScanState({ status: "error", message: "មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកកាន់ QR ជិតមុខ" });
-      return;
-    }
-    if (!qrResult) {
-      setScanState({ status: "error", message: "រកមិនឃើញ QR — សូមថតឱ្យច្បាស់ជាងនេះ" });
-      return;
-    }
-
+    // ── Parse QR ──
     let parsed: { id: string };
-    try {
-      parsed = JSON.parse(qrResult.data);
-      if (!parsed.id) throw new Error();
-    } catch {
-      setScanState({ status: "error", message: "QR មិនត្រឹមត្រូវ" }); return;
+    try { parsed = JSON.parse(qr.data); if (!parsed.id) throw new Error(); }
+    catch { setErrorMsg("QR មិនត្រឹមត្រូវ"); lockedRef.current = false; setCamState("idle"); return; }
+
+    // ── Face verification ──
+    if (modelsReady) {
+      const storedDesc = descriptorsRef.current.get(parsed.id);
+      if (storedDesc) {
+        // Employee has enrolled face — verify it matches
+        const liveDet = await faceapi
+          .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks(true)
+          .withFaceDescriptor();
+
+        if (!liveDet) {
+          setErrorMsg("មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកបង្ហាញមុខ");
+          lockedRef.current = false; setCamState("idle"); return;
+        }
+
+        const distance = faceapi.euclideanDistance(liveDet.descriptor, storedDesc);
+        if (distance > FACE_MATCH_THRESHOLD) {
+          setErrorMsg(`មុខមិនត្រូវ (${(distance * 100).toFixed(0)}% ≠ បុគ្គលិក) — ការ៉ែស្ករ?`);
+          lockedRef.current = false; setCamState("idle"); return;
+        }
+      } else {
+        // No enrolled face — require a face to be present (deters unattended QR cards)
+        const det = await faceapi.detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions());
+        if (!det) {
+          setErrorMsg("មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកបង្ហាញមុខ");
+          lockedRef.current = false; setCamState("idle"); return;
+        }
+      }
     }
 
+    // ── Lookup employee ──
     const { data: emp, error: empErr } = await supabase
       .from("employees").select("*").eq("id", parsed.id).eq("is_active", true).single();
     if (empErr || !emp) {
-      setScanState({ status: "error", message: `មិនរកឃើញបុគ្គលិក: ${parsed.id}` }); return;
+      setErrorMsg(`មិនរកឃើញបុគ្គលិក: ${parsed.id}`);
+      lockedRef.current = false; setCamState("idle"); return;
     }
 
-    const shift = getShift();
-    const today = getTodayDate();
-    const now   = new Date();
+    // ── Record attendance ──
+    const shift   = getShift();
+    const today   = getTodayDate();
+    const now     = new Date();
     const timeStr = now.toLocaleTimeString("km-KH", { hour: "2-digit", minute: "2-digit" });
 
     const { data: existing } = await supabase
-      .from("attendance_logs")
-      .select("id, checked_in_at, checked_out_at")
-      .eq("employee_id", parsed.id).eq("date", today).eq("shift", shift)
-      .maybeSingle();
+      .from("attendance_logs").select("id, checked_in_at, checked_out_at")
+      .eq("employee_id", parsed.id).eq("date", today).eq("shift", shift).maybeSingle();
 
     let scanType: ScanType;
-
     if (!existing) {
       const { error } = await supabase.from("attendance_logs").insert({
         employee_id: parsed.id, date: today, shift,
         checked_in_at: now.toISOString(), checked_out_at: null, verified: true,
       });
-      if (error) { setScanState({ status: "error", message: error.message }); return; }
+      if (error) { setErrorMsg(error.message); lockedRef.current = false; setCamState("idle"); return; }
       scanType = "check_in";
     } else if (!existing.checked_out_at) {
-      const { error } = await supabase
-        .from("attendance_logs").update({ checked_out_at: now.toISOString() }).eq("id", existing.id);
-      if (error) { setScanState({ status: "error", message: error.message }); return; }
+      const { error } = await supabase.from("attendance_logs")
+        .update({ checked_out_at: now.toISOString() }).eq("id", existing.id);
+      if (error) { setErrorMsg(error.message); lockedRef.current = false; setCamState("idle"); return; }
       scanType = "check_out";
     } else {
-      setScanState({ status: "complete", employee: emp, shift: SHIFT_KH[shift] }); return;
+      setCompleteInfo({ name: emp.name, shift: SHIFT_KH[shift] });
+      lockedRef.current = false; stopCamera(); setCamState("complete"); return;
     }
 
-    const label = scanType === "check_in" ? "ចូលធ្វើការ" : "ចេញពីការងារ";
-    sendToTelegram(canvas, `${emp.name} — ${label} | វេន${SHIFT_KH[shift]} | ${timeStr}`);
-    setScanState({ status: "done", employee: emp, shift, scanType, time: timeStr });
-  }, [modelsLoaded]);
+    sendToTelegram(canvas, `${emp.name} — ${scanType === "check_in" ? "ចូលធ្វើការ" : "ចេញពីការងារ"} | វេន${SHIFT_KH[shift]} | ${timeStr}`);
+    setResult({ employee: emp, shift, scanType, time: timeStr });
+    lockedRef.current = false; stopCamera(); setCamState("done");
+  }, [modelsReady, stopCamera]);
 
-  // Called when user picks/takes a photo via file input
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const startCamera = useCallback(async () => {
+    setErrorMsg("");
+    lockedRef.current = false;
+    setCamState("starting");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      const video = videoRef.current!;
+      video.srcObject = stream;
+      await video.play();
+      setCamState("scanning");
+
+      const canvas = canvasRef.current!;
+      const tick = () => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+          canvas.getContext("2d")!.drawImage(video, 0, 0);
+          processFrame(canvas);
+        }
+        rafRef.current = requestAnimationFrame(tick);
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    } catch {
+      setCamState("idle");
+      setErrorMsg("ការអនុញ្ញាតកាមេរ៉ាត្រូវបានបដិសេធ");
+    }
+  }, [processFrame]);
+
+  useEffect(() => () => stopCamera(), [stopCamera]);
+
+  const reset = useCallback(() => {
+    setResult(null); setCompleteInfo(null); setErrorMsg("");
+    stopCamera(); setCamState("idle");
+  }, [stopCamera]);
+
+  const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-
     const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setScanState({ status: "preview", dataUrl: url });
-  }, []);
-
-  // Process the previewed image
-  const processPreview = useCallback(() => {
-    if (!previewUrl || !canvasRef.current) return;
-    setScanState({ status: "processing" });
     const img = new Image();
     img.onload = async () => {
       const canvas = canvasRef.current!;
       canvas.width = img.width; canvas.height = img.height;
       canvas.getContext("2d")!.drawImage(img, 0, 0);
-      URL.revokeObjectURL(previewUrl);
-      await processCanvas(canvas);
+      URL.revokeObjectURL(url);
+      lockedRef.current = false;
+      setCamState("processing");
+      await processFrame(canvas);
     };
-    img.src = previewUrl;
-  }, [previewUrl, processCanvas]);
-
-  const reset = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setScanState({ status: "idle" });
-  };
+    img.src = url;
+  }, [processFrame]);
 
   // ── Success ──
-  if (scanState.status === "done") {
-    const isIn = scanState.scanType === "check_in";
+  if (camState === "done" && result) {
+    const isIn = result.scanType === "check_in";
     return (
       <div className={`fixed inset-0 ${isIn ? "bg-green-600" : "bg-blue-600"} flex flex-col items-center justify-center text-white p-8 text-center`}>
-        <div className="text-7xl mb-4 font-bold">{isIn ? "→" : "←"}</div>
-        <div className="text-4xl font-bold font-khmer mb-2">{scanState.employee.name}</div>
-        <div className="text-lg font-khmer mb-1 opacity-90">{scanState.employee.department}</div>
+        <div className="mb-4">{isIn ? <ArrowRight size={72} strokeWidth={1.5} /> : <ArrowLeft size={72} strokeWidth={1.5} />}</div>
+        <div className="text-4xl font-bold font-khmer mb-2">{result.employee.name}</div>
+        <div className="text-lg font-khmer opacity-90 mb-1">{result.employee.department}</div>
         <div className="mt-4 bg-white/20 rounded-2xl px-8 py-4">
-          <div className="text-lg font-khmer font-semibold">{isIn ? "ចូលធ្វើការ" : "ចេញពីការងារ"} · វេន{SHIFT_KH[scanState.shift]}</div>
-          <div className="text-3xl font-bold mt-1">{scanState.time}</div>
+          <div className="text-lg font-khmer font-semibold">{isIn ? "ចូលធ្វើការ" : "ចេញពីការងារ"} · វេន{SHIFT_KH[result.shift]}</div>
+          <div className="text-3xl font-bold mt-1">{result.time}</div>
         </div>
         <button onClick={reset} className="mt-10 bg-white text-gray-800 font-bold px-8 py-4 rounded-2xl text-xl min-h-[56px]">
           ស្កែនម្តងទៀត
@@ -167,12 +270,12 @@ export default function ScanPage() {
     );
   }
 
-  if (scanState.status === "complete") {
+  if (camState === "complete" && completeInfo) {
     return (
       <div className="fixed inset-0 bg-yellow-500 flex flex-col items-center justify-center text-white p-8 text-center">
-        <div className="text-6xl mb-6">✓✓</div>
+        <div className="mb-6"><CheckCheck size={64} strokeWidth={1.5} /></div>
         <div className="text-2xl font-bold font-khmer mb-2">ស្កែនគ្រប់គ្រាន់ហើយ</div>
-        <div className="text-xl font-khmer">{scanState.complete?.employee?.name ?? ""} — វេន{scanState.complete?.shift ?? ""}</div>
+        <div className="text-xl font-khmer">{completeInfo.name} — វេន{completeInfo.shift}</div>
         <button onClick={reset} className="mt-10 bg-white text-yellow-700 font-bold px-8 py-4 rounded-2xl text-xl min-h-[56px]">
           ស្កែនម្តងទៀត
         </button>
@@ -180,85 +283,86 @@ export default function ScanPage() {
     );
   }
 
-  // ── Preview ──
-  if (scanState.status === "preview") {
+  // ── Idle (tap to start) ──
+  if (camState === "idle") {
     return (
-      <div className="fixed inset-0 bg-black flex flex-col">
-        <div className="flex-1 relative overflow-hidden">
-          <img src={scanState.dataUrl} alt="preview" className="w-full h-full object-contain" />
-        </div>
+      <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center p-8 text-center">
         <canvas ref={canvasRef} className="hidden" />
-        <div className="bg-black p-4 pb-safe flex gap-3">
-          <button onClick={reset} className="flex-1 py-4 rounded-2xl bg-gray-700 text-white font-khmer font-semibold text-base min-h-[56px]">
-            ថតឡើងវិញ
-          </button>
-          <button onClick={processPreview} className="flex-2 flex-[2] py-4 rounded-2xl bg-white text-black font-khmer font-bold text-base min-h-[56px]">
-            ប្រើរូបនេះ →
-          </button>
+        <div className="mb-10">
+          <div className="text-white text-xl font-khmer font-bold mb-1">ស្កែន QR វត្តមាន</div>
+          <div className="text-gray-400 text-sm font-khmer">
+            {faceLoadStatus === "error"
+              ? <span className="text-red-400">Face AI failed to load</span>
+              : modelsReady
+              ? <span className="flex items-center justify-center gap-1 text-green-400"><ShieldCheck size={14} /> Face AI · {enrolledCount} enrolled</span>
+              : "Loading Face AI..."}
+          </div>
         </div>
+
+        {errorMsg && (
+          <div className="bg-red-600/90 rounded-2xl p-4 text-white font-khmer text-sm mb-6 w-full max-w-sm text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        <button onClick={startCamera}
+          className="w-32 h-32 rounded-full bg-white shadow-2xl active:scale-95 transition-transform flex items-center justify-center mb-4">
+          <Camera size={52} className="text-gray-700" strokeWidth={1.5} />
+        </button>
+        <div className="text-gray-500 text-sm font-khmer mb-10">ចុចដើម្បីចាប់ផ្ដើម</div>
+
+        <label className="text-gray-500 text-sm font-khmer underline cursor-pointer min-h-[44px] flex items-center gap-2">
+          <FolderOpen size={16} /><span>ឬជ្រើសរើសរូបភាព</span>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        </label>
       </div>
     );
   }
 
-  // ── Processing ──
-  if (scanState.status === "processing") {
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center">
-        <canvas ref={canvasRef} className="hidden" />
-        <div className="animate-spin w-16 h-16 border-4 border-white border-t-transparent rounded-full mb-6" />
-        <div className="text-white text-lg font-khmer">កំពុងដំណើរការ...</div>
-      </div>
-    );
-  }
-
-  // ── Idle / Error ──
+  // ── Live viewfinder ──
   return (
-    <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center p-8">
+    <div className="fixed inset-0 bg-black">
+      <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover" playsInline muted />
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Hidden file input — capture="environment" opens back camera on iOS, no permission prompt */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <div className="absolute inset-0 flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 bg-gradient-to-b from-black/60 to-transparent">
+          <div className="text-white font-khmer font-bold text-lg">ស្កែន QR វត្តមាន</div>
+          {modelsReady && (
+            <div className="text-green-400 text-xs bg-black/40 rounded-full px-2 py-1 flex items-center gap-1">
+              <ShieldCheck size={12} /> Face AI ({enrolledCount})
+            </div>
+          )}
+        </div>
 
-      <div className="text-center mb-10">
-        <div className="text-6xl mb-4">📷</div>
-        <div className="text-white text-xl font-khmer font-bold">ស្កែន QR វត្តមាន</div>
-        <div className="text-gray-400 text-sm font-khmer mt-2">ថតបុគ្គលិកជាមួយកាត QR</div>
-        {modelsLoaded && (
-          <div className="text-green-400 text-xs mt-1">✓ Face AI រួចរាល់</div>
-        )}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="relative w-64 h-64">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-lg" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-lg" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-lg" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-lg" />
+            {camState === "scanning" && (
+              <div className="absolute left-1 right-1 h-0.5 bg-green-400 shadow-[0_0_8px_2px_rgba(74,222,128,0.8)] animate-[scan_2s_linear_infinite]" />
+            )}
+            {camState === "processing" && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="animate-spin w-12 h-12 border-4 border-white border-t-transparent rounded-full" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="pb-24 px-6 bg-gradient-to-t from-black/70 to-transparent">
+          <div className="text-center text-white/70 text-sm font-khmer mb-4">
+            {camState === "starting" ? "កំពុងបើកកាមេរ៉ា..." :
+             camState === "processing" ? "កំពុងដំណើរការ..." : "ស្កែន QR ដោយស្វ័យប្រវត្តិ"}
+          </div>
+          <label className="flex items-center justify-center gap-2 text-white/50 text-sm font-khmer cursor-pointer min-h-[44px]">
+            <FolderOpen size={16} /><span className="underline">ជ្រើសរើសរូបភាពពីបណ្ណសារ</span>
+            <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
+          </label>
+        </div>
       </div>
-
-      {scanState.status === "error" && (
-        <div className="bg-red-600 rounded-2xl p-4 text-white text-center font-khmer text-base mb-6 w-full max-w-sm">
-          {scanState.message}
-        </div>
-      )}
-
-      {/* Main camera button */}
-      <button
-        onClick={() => fileInputRef.current?.click()}
-        className="w-28 h-28 rounded-full bg-white shadow-2xl active:scale-95 transition-transform flex items-center justify-center mb-6"
-        aria-label="ថតរូប"
-      >
-        <div className="w-24 h-24 rounded-full bg-white border-4 border-gray-200 flex items-center justify-center">
-          <span className="text-4xl">📷</span>
-        </div>
-      </button>
-
-      <div className="text-gray-500 text-sm font-khmer">ចុចដើម្បីថតរូប</div>
-
-      {/* Upload from gallery fallback */}
-      <label className="mt-6 text-gray-500 text-sm font-khmer underline cursor-pointer min-h-[44px] flex items-center">
-        ឬជ្រើសរើសរូបពីបណ្ណសារ
-        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-      </label>
     </div>
   );
 }
