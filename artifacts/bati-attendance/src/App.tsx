@@ -1,7 +1,7 @@
-import { Component, type ReactNode } from "react";
+import { Component, useEffect, useState, type ReactNode } from "react";
 import { Switch, Route, Router as WouterRouter, Link, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { QrCode, LayoutDashboard, Calendar, DollarSign, Users, type LucideIcon } from "lucide-react";
+import { QrCode, LayoutDashboard, Calendar, DollarSign, Users, WifiOff, type LucideIcon } from "lucide-react";
 import { Toaster } from "sonner";
 import ScanPage from "@/pages/scan";
 import DashboardPage from "@/pages/dashboard";
@@ -43,6 +43,27 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     }
     return this.props.children;
   }
+}
+
+// The app requires internet (attendance only records after the Telegram
+// audit photo posts) — surface connectivity loss before scans start failing.
+function OfflineBanner() {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const up = () => setOnline(true);
+    const down = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", down);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", down); };
+  }, []);
+  if (online) return null;
+  return (
+    <div role="alert"
+      className="fixed top-0 left-0 right-0 z-[60] bg-red-600 text-white text-sm font-khmer font-semibold flex items-center justify-center gap-2 py-2 px-4 print:hidden"
+      style={{ paddingTop: "max(env(safe-area-inset-top, 0px), 8px)" }}>
+      <WifiOff size={16} /> គ្មានអ៊ីនធឺណិត — ការស្កែនមិនអាចកត់ត្រាបានទេ
+    </div>
+  );
 }
 
 function NavBar() {
@@ -114,6 +135,7 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <WouterRouter>
+          <OfflineBanner />
           <Router />
         </WouterRouter>
         <Toaster

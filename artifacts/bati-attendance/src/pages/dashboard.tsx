@@ -9,7 +9,9 @@ import {
   isShiftClosed,
   calcLeaveEntitlement,
   calcLeaveUsed,
-  calcTenureYears,
+  FULL_BONUS,
+  PARTIAL_BONUS,
+  WORK_DAYS,
 } from "@/lib/utils";
 import type { Employee, AttendanceLog, LeaveRecord } from "@/lib/supabase";
 
@@ -107,12 +109,12 @@ export default function DashboardPage() {
   }
 
   function BonusBadge({ days, leaveUsed }: { days: number; leaveUsed: number }) {
-    const effectiveAbsent = Math.max(0, 26 - days - leaveUsed);
-    if (days + leaveUsed < 26) {
+    const effectiveAbsent = Math.max(0, WORK_DAYS - days - leaveUsed);
+    if (days + leaveUsed < WORK_DAYS) {
       return <span className="text-xs text-gray-400 font-khmer">កំពុងរង់ចាំ</span>;
     }
-    if (effectiveAbsent === 0) return <span className="text-xs text-green-700 font-bold">$12</span>;
-    if (effectiveAbsent === 1) return <span className="text-xs text-yellow-600 font-bold">$6</span>;
+    if (effectiveAbsent === 0) return <span className="text-xs text-green-700 font-bold">${FULL_BONUS}</span>;
+    if (effectiveAbsent === 1) return <span className="text-xs text-yellow-600 font-bold">${PARTIAL_BONUS}</span>;
     return <span className="text-xs text-red-600 font-bold">$0</span>;
   }
 

@@ -259,6 +259,14 @@ export default function ScanPage() {
     stopCamera(); setCamState("idle");
   }, [stopCamera]);
 
+  // Auto-return to idle after a successful scan — keeps the check-in line
+  // moving without requiring a tap per worker (~170 taps/day saved)
+  useEffect(() => {
+    if (camState !== "done") return;
+    const t = setTimeout(reset, 2500);
+    return () => clearTimeout(t);
+  }, [camState, reset]);
+
   const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

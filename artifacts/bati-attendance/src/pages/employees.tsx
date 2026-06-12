@@ -101,11 +101,11 @@ export default function EmployeesPage() {
       .upload(faceFilename(employeeId), blob, { upsert: true, contentType: "image/jpeg" });
 
     if (error) {
-      toast.error("Upload failed", { description: error.message });
+      toast.error("ការបញ្ចូលរូបបរាជ័យ", { description: error.message });
       setFaceState((s) => ({ ...s, [employeeId]: "none" }));
       return;
     }
-    toast.success("Photo uploaded successfully");
+    toast.success("បានបញ្ចូលរូបថតដោយជោគជ័យ");
     const empName = displayList.find((e) => e.id === employeeId)?.name ?? employeeId;
     notifyEnrollment(blob, `📸 រូបមុខត្រូវបានផ្លាស់ប្តូរ — ${empName} (${employeeId})`);
     const url = getFaceUrl(employeeId) + "?t=" + Date.now();
@@ -154,8 +154,8 @@ export default function EmployeesPage() {
     else {
       const { data } = await supabase.from("employees").select("*").eq("is_active", true);
       if (data) setDbEmployees(data);
-      setSeedMsg("Synced successfully");
-      toast.success("Staff synced to database");
+      setSeedMsg("បានធ្វើបច្ចុប្បន្នភាព");
+      toast.success("បានធ្វើបច្ចុប្បន្នភាពបុគ្គលិកទៅទិន្នន័យរួម");
     }
     setSeeding(false);
   }
@@ -311,7 +311,7 @@ FOR UPDATE USING (bucket_id = 'employee-faces');`}</pre>
           }
         `}</style>
         <div className="print-page">
-          {displayList.map((emp) => {
+          {displayList.filter((emp) => emp.department !== "Test").map((emp) => {
             const qrData = JSON.stringify({ id: emp.id, name: emp.name, department: emp.department, start_date: emp.start_date });
             const role   = emp.id.startsWith("ប្រធាន") ? "ប្រធាន" : "បុគ្គលិក";
             return (

@@ -4,11 +4,9 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { EMPLOYEES, DEPARTMENTS } from "@/lib/employees";
 import { downloadCsv } from "@/lib/export";
+import { FULL_BONUS, PARTIAL_BONUS, WORK_DAYS } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Employee } from "@/lib/supabase";
-
-const FULL_BONUS = 16;
-const PARTIAL_BONUS = 6;
-const WORK_DAYS = 26;
 
 type BonusStatus = "full" | "partial" | "none" | "pending";
 
@@ -51,6 +49,7 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true);
   const [deptFilter, setDeptFilter] = useState("all");
   const [paying, setPaying] = useState<string | null>(null);
+  const [unpayTarget, setUnpayTarget] = useState<PayRow | null>(null);
 
   const today = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -107,6 +106,12 @@ export default function FinancePage() {
 
   async function markPaid(row: PayRow) {
     if (row.bonusStatus === "pending") return;
+    // Un-paying silently corrupts payroll history — require explicit confirmation
+    if (row.paidAt && unpayTarget?.employee.id !== row.employee.id) {
+      setUnpayTarget(row);
+      return;
+    }
+    setUnpayTarget(null);
     setPaying(row.employee.id);
     if (row.payrollId) {
       // Toggle: unpay if already paid
@@ -124,7 +129,7 @@ export default function FinancePage() {
       });
     }
     setPaying(null);
-    toast.success(row.paidAt ? "Marked as unpaid" : `$${row.bonus} marked as paid`);
+    toast.success(row.paidAt ? "បានកត់ត្រាថាមិនទាន់បើកប្រាក់" : `បានបើកប្រាក់ $${row.bonus}`);
     load();
   }
 
@@ -292,6 +297,16 @@ export default function FinancePage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={unpayTarget !== null}
+        title="កត់ត្រាថាមិនទាន់បើកប្រាក់?"
+        description={unpayTarget ? `${unpayTarget.employee.name} — $${unpayTarget.bonus}` : undefined}
+        confirmLabel="យល់ព្រម"
+        destructive
+        onConfirm={() => unpayTarget && markPaid(unpayTarget)}
+        onCancel={() => setUnpayTarget(null)}
+      />
     </div>
   );
 }

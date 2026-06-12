@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Download, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { CircleProgress } from "@/components/ui/circle-progress";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { supabase } from "@/lib/supabase";
 import { EMPLOYEES, DEPARTMENTS } from "@/lib/employees";
 import {
@@ -125,13 +126,16 @@ export default function LeavePage() {
       return;
     }
     setForm(f => ({ ...f, open: false, submitting: false }));
-    toast.success("Leave recorded");
+    toast.success("បានកត់ត្រាច្បាប់ឈប់");
     load();
   }
 
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; date: string } | null>(null);
+
   async function deleteLeave(id: string) {
-    if (!confirm("លុបច្បាប់នេះ?")) return;
     await supabase.from("leave_records").delete().eq("id", id);
+    setDeleteTarget(null);
+    toast.success("បានលុបច្បាប់");
     load();
   }
 
@@ -240,8 +244,8 @@ export default function LeavePage() {
                                     <span className={`font-semibold ${r.type === "full" ? "text-orange-600" : "text-yellow-600"}`}>
                                       {r.type === "full" ? "ពេញ" : "កន្លះ"}
                                     </span>
-                                    <button onClick={() => deleteLeave(r.id)}
-                                      className="text-gray-300 hover:text-red-500 ml-0.5 leading-none flex items-center"><X size={12} /></button>
+                                    <button onClick={() => setDeleteTarget({ id: r.id, date: r.date })}
+                                      className="text-gray-400 hover:text-red-500 -m-1 p-1.5 leading-none flex items-center"><X size={14} /></button>
                                   </div>
                                 ))}
                                 {emp.records.length > 6 && (
@@ -269,6 +273,16 @@ export default function LeavePage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="លុបច្បាប់នេះ?"
+        description={deleteTarget ? `ថ្ងៃ ${deleteTarget.date} — មិនអាចត្រឡប់វិញបានទេ` : undefined}
+        confirmLabel="លុប"
+        destructive
+        onConfirm={() => deleteTarget && deleteLeave(deleteTarget.id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {/* Leave form modal */}
       {form.open && (
@@ -325,7 +339,7 @@ export default function LeavePage() {
                 <button
                   onClick={submitLeave}
                   disabled={form.submitting}
-                  className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold disabled:opacity-50 font-khmer"
+                  className="flex-1 py-3 rounded-xl bg-[#5E8B73] text-white font-bold disabled:opacity-50 font-khmer"
                 >
                   {form.submitting ? "..." : "រក្សាទុក"}
                 </button>

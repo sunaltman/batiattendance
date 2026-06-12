@@ -93,3 +93,8 @@ export function calcMonthlyLeaveUsed(
 /** Max leave days allowed per calendar month */
 export const MONTHLY_LEAVE_CAP = 1.5;
 
+/** Bonus policy — single source of truth for dashboard + finance */
+export const FULL_BONUS = 16;    // 26 effective days
+export const PARTIAL_BONUS = 6;  // 1 day short
+export const WORK_DAYS = 26;
+
