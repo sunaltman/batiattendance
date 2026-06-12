@@ -16,14 +16,21 @@ function faceFilename(employeeId: string) {
   return encodeURIComponent(employeeId).replace(/%/g, "_") + ".jpg";
 }
 
-async function sendToTelegram(canvas: HTMLCanvasElement, caption: string) {
-  if (!TG_TOKEN || !TG_CHAT) return;
+// Returns true only if the photo was actually posted to the group.
+// Attendance is NOT recorded unless this succeeds — the Telegram photo
+// is the tamper-proof audit trail.
+async function sendToTelegram(canvas: HTMLCanvasElement, caption: string): Promise<boolean> {
+  if (!TG_TOKEN || !TG_CHAT) return false;
   try {
     const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.85));
     const fd = new FormData();
     fd.append("chat_id", TG_CHAT); fd.append("caption", caption); fd.append("photo", blob, "scan.jpg");
-    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, { method: "POST", body: fd });
-  } catch { /* fire-and-forget */ }
+    const res = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, { method: "POST", body: fd });
+    const json = await res.json().catch(() => null);
+    return res.ok && json?.ok === true;
+  } catch {
+    return false;
+  }
 }
 
 async function loadImageToCanvas(url: string): Promise<HTMLCanvasElement | null> {
@@ -173,24 +180,33 @@ export default function ScanPage() {
       .eq("employee_id", parsed.id).eq("date", today).eq("shift", shift).maybeSingle();
 
     let scanType: ScanType;
-    if (!existing) {
+    if (!existing) scanType = "check_in";
+    else if (!existing.checked_out_at) scanType = "check_out";
+    else {
+      setCompleteInfo({ name: emp.name, shift: SHIFT_KH[shift] });
+      lockedRef.current = false; stopCamera(); setCamState("complete"); return;
+    }
+
+    // ── Telegram audit photo MUST post before attendance is recorded ──
+    const posted = await sendToTelegram(canvas,
+      `${emp.name} — ${scanType === "check_in" ? "ចូលធ្វើការ" : "ចេញពីការងារ"} | វេន${SHIFT_KH[shift]} | ${timeStr}`);
+    if (!posted) {
+      setErrorMsg("មិនអាចផ្ញើរូបទៅ Telegram — សូមពិនិត្យអ៊ីនធឺណិត រួចព្យាយាមម្តងទៀត");
+      lockedRef.current = false; setCamState("idle"); return;
+    }
+
+    if (scanType === "check_in") {
       const { error } = await supabase.from("attendance_logs").insert({
         employee_id: parsed.id, date: today, shift,
         checked_in_at: now.toISOString(), checked_out_at: null, verified: true,
       });
       if (error) { setErrorMsg(error.message); lockedRef.current = false; setCamState("idle"); return; }
-      scanType = "check_in";
-    } else if (!existing.checked_out_at) {
-      const { error } = await supabase.from("attendance_logs")
-        .update({ checked_out_at: now.toISOString() }).eq("id", existing.id);
-      if (error) { setErrorMsg(error.message); lockedRef.current = false; setCamState("idle"); return; }
-      scanType = "check_out";
     } else {
-      setCompleteInfo({ name: emp.name, shift: SHIFT_KH[shift] });
-      lockedRef.current = false; stopCamera(); setCamState("complete"); return;
+      const { error } = await supabase.from("attendance_logs")
+        .update({ checked_out_at: now.toISOString() }).eq("id", existing!.id);
+      if (error) { setErrorMsg(error.message); lockedRef.current = false; setCamState("idle"); return; }
     }
 
-    sendToTelegram(canvas, `${emp.name} — ${scanType === "check_in" ? "ចូលធ្វើការ" : "ចេញពីការងារ"} | វេន${SHIFT_KH[shift]} | ${timeStr}`);
     setResult({ employee: emp, shift, scanType, time: timeStr });
     lockedRef.current = false; stopCamera(); setCamState("done");
   }, [modelsReady, stopCamera]);

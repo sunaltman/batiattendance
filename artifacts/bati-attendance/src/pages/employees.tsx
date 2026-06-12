@@ -8,6 +8,19 @@ import { calcTenureYears } from "@/lib/utils";
 import type { Employee } from "@/lib/supabase";
 
 const BUCKET = "employee-faces";
+const TG_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN as string | undefined;
+const TG_CHAT  = import.meta.env.VITE_TELEGRAM_CHAT_ID  as string | undefined;
+
+// Audit trail: every face enrollment/change is posted to the Telegram group
+// so photos can't be silently swapped.
+async function notifyEnrollment(blob: Blob, caption: string) {
+  if (!TG_TOKEN || !TG_CHAT) return;
+  try {
+    const fd = new FormData();
+    fd.append("chat_id", TG_CHAT); fd.append("caption", caption); fd.append("photo", blob, "face.jpg");
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendPhoto`, { method: "POST", body: fd });
+  } catch { /* non-blocking */ }
+}
 
 // Supabase storage requires ASCII-safe filenames
 function faceFilename(employeeId: string) {
@@ -93,6 +106,8 @@ export default function EmployeesPage() {
       return;
     }
     toast.success("Photo uploaded successfully");
+    const empName = displayList.find((e) => e.id === employeeId)?.name ?? employeeId;
+    notifyEnrollment(blob, `📸 រូបមុខត្រូវបានផ្លាស់ប្តូរ — ${empName} (${employeeId})`);
     const url = getFaceUrl(employeeId) + "?t=" + Date.now();
     setFaceUrls((u) => ({ ...u, [employeeId]: url }));
     setFaceState((s) => ({ ...s, [employeeId]: "ok" }));
