@@ -53,6 +53,105 @@ async function sendToTelegram(canvas: HTMLCanvasElement, caption: string): Promi
   }
 }
 
+// ── Receipt composition ──
+// Wraps the captured photo in a branded "verified check-in record" frame
+// before it is posted to Telegram, so every audit photo carries the
+// employee info, face-match score, and timestamp inside the image itself.
+const RC = {
+  bg: "#FCFBF6", ink: "#152019", faint: "#6B7A70",
+  sage: "#5E8B73", sageDeep: "#3D6B55", tint: "#EBF5EF",
+  dash: "rgba(21,32,25,.28)",
+};
+const KH_FONT = '"Noto Sans Khmer", "Khmer OS", -apple-system, sans-serif';
+const MONO_FONT = '"SF Mono", "Roboto Mono", Menlo, monospace';
+
+function rcDashedLine(ctx: CanvasRenderingContext2D, y: number, x1: number, x2: number) {
+  ctx.save();
+  ctx.strokeStyle = RC.dash; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  ctx.restore();
+}
+
+function rcRow(ctx: CanvasRenderingContext2D, y: number, pad: number, w: number,
+  label: string, value: string, ok = false) {
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = RC.faint; ctx.font = `500 22px ${MONO_FONT}`; ctx.textAlign = "left";
+  ctx.fillText(label, pad, y);
+  ctx.textAlign = "right";
+  if (ok) {
+    ctx.font = `700 26px ${MONO_FONT}`;
+    const tw = ctx.measureText(value).width;
+    const cx = w - pad - tw - 24, r = 13;
+    ctx.fillStyle = RC.sage;
+    ctx.beginPath(); ctx.arc(cx, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath(); ctx.moveTo(cx - 5, y); ctx.lineTo(cx - 1.5, y + 4); ctx.lineTo(cx + 5.5, y - 4.5); ctx.stroke();
+    ctx.fillStyle = RC.sageDeep;
+    ctx.fillText(value, w - pad, y);
+  } else {
+    ctx.fillStyle = RC.ink; ctx.font = `700 26px ${KH_FONT}`;
+    ctx.fillText(value, w - pad, y);
+  }
+}
+
+function composeReceipt(photo: HTMLCanvasElement, info: {
+  name: string; id: string; scanType: ScanType; shiftKh: string;
+  time: string; match: number | null;
+}): HTMLCanvasElement {
+  const W = 720, H = 1030, PAD = 48;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const ctx = c.getContext("2d")!;
+
+  ctx.fillStyle = RC.bg; ctx.fillRect(0, 0, W, H);
+
+  // header
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = RC.ink; ctx.font = `700 40px Georgia, "Times New Roman", serif`;
+  ctx.fillText("BATI ATTENDANCE", W / 2, 72);
+  ctx.fillStyle = RC.faint; ctx.font = `500 19px ${MONO_FONT}`;
+  ctx.fillText(info.scanType === "check_in" ? "V E R I F I E D   C H E C K - I N" : "V E R I F I E D   C H E C K - O U T", W / 2, 116);
+  rcDashedLine(ctx, 152, PAD, W - PAD);
+
+  // top rows
+  rcRow(ctx, 198, PAD, W, "EMPLOYEE", info.name);
+  rcRow(ctx, 256, PAD, W, "ID", info.id);
+
+  // photo block — center-cover crop into rounded rect with corner brackets
+  const px = PAD, py = 300, pw = W - PAD * 2, ph = 360, r = 18;
+  ctx.save();
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, r); else ctx.rect(px, py, pw, ph);
+  ctx.clip();
+  const ar = pw / ph;
+  let sw = photo.width, sh = photo.height;
+  if (sw / sh > ar) sw = sh * ar; else sh = sw / ar;
+  ctx.drawImage(photo, (photo.width - sw) / 2, (photo.height - sh) / 2, sw, sh, px, py, pw, ph);
+  ctx.restore();
+  ctx.strokeStyle = RC.sageDeep; ctx.lineWidth = 5; ctx.lineCap = "round";
+  const B = 30, G = 14;
+  ([[px + G, py + G, 1, 1], [px + pw - G, py + G, -1, 1],
+    [px + G, py + ph - G, 1, -1], [px + pw - G, py + ph - G, -1, -1]] as const)
+    .forEach(([x, y, dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(x, y + dy * B); ctx.lineTo(x, y); ctx.lineTo(x + dx * B, y);
+      ctx.stroke();
+    });
+
+  // bottom rows
+  let y = 716;
+  rcRow(ctx, y, PAD, W, "FACE MATCH", info.match !== null ? `${info.match}% confirmed` : "not enrolled", info.match !== null);
+  rcRow(ctx, y += 58, PAD, W, info.scanType === "check_in" ? "TIME IN" : "TIME OUT", info.time);
+  rcRow(ctx, y += 58, PAD, W, "SHIFT", info.shiftKh);
+  rcRow(ctx, y += 58, PAD, W, "POSTED TO TELEGRAM", info.time, true);
+
+  // footer
+  rcDashedLine(ctx, y + 44, PAD, W - PAD);
+  ctx.textAlign = "center"; ctx.fillStyle = RC.faint; ctx.font = `500 18px ${MONO_FONT}`;
+  ctx.fillText("RECORD IS IMMUTABLE AFTER POSTING", W / 2, y + 84);
+  return c;
+}
+
 async function loadImageToCanvas(url: string): Promise<HTMLCanvasElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -148,6 +247,7 @@ export default function ScanPage() {
     catch { setErrorMsg("QR មិនត្រឹមត្រូវ"); lockedRef.current = false; setCamState("idle"); return; }
 
     // ── Face verification ──
+    let matchPct: number | null = null;
     const h = humanRef.current;
     if (modelsReady && h) {
       const storedEmb = descriptorsRef.current.get(parsed.id);
@@ -162,6 +262,7 @@ export default function ScanPage() {
           setErrorMsg(`មុខមិនត្រូវ (${(similarity * 100).toFixed(0)}% ត្រូវគ្នា) — សូមព្យាយាមម្តងទៀត`);
           lockedRef.current = false; setCamState("idle"); return;
         }
+        matchPct = Math.round(similarity * 100);
       } else {
         const res = await h.detect(canvas);
         if (res.face.length === 0) {
@@ -198,7 +299,13 @@ export default function ScanPage() {
     }
 
     // ── Telegram audit photo MUST post before attendance is recorded ──
-    const posted = await sendToTelegram(canvas,
+    const receipt = composeReceipt(canvas, {
+      name: emp.name, id: emp.id, scanType,
+      shiftKh: `វេន${SHIFT_KH[shift]}`,
+      time: now.toLocaleTimeString("en-GB"),
+      match: matchPct,
+    });
+    const posted = await sendToTelegram(receipt,
       `${emp.name} — ${scanType === "check_in" ? "ចូលធ្វើការ" : "ចេញពីការងារ"} | វេន${SHIFT_KH[shift]} | ${timeStr}`);
     if (!posted) {
       setErrorMsg("មិនអាចផ្ញើរូបទៅ Telegram — សូមពិនិត្យអ៊ីនធឺណិត រួចព្យាយាមម្តងទៀត");
