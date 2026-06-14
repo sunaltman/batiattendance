@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>មគ្គុទេសក៍ប្រើប្រាស់ — Bati Attendance</title>
+<meta name="description" content="របៀបប្រើ Bati Attendance សម្រាប់ប្រធានក្រុម៖ ស្កែនវត្តមាន ផ្ទាំងគ្រប់គ្រង ច្បាប់ឈប់ ប្រាក់បៀវត្សរ៍ និងកាត QR។">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:wght@400..700&family=Noto+Sans+Khmer:wght@400;500;600;700;900&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sage:#5E8B73; --sage-deep:#3D6B55; --sage-tint:#EBF5EF; --sage-mist:#DCEDE3;
+  --ink:#152019; --ink-soft:#3C4A41; --ink-faint:#6B7A70;
+  --paper:#FAF9F5; --paper-warm:#F3F1E9; --card:#FFFFFF;
+  --line:rgba(21,32,25,.1); --line-dash:rgba(21,32,25,.18);
+  --gold:#C9A24B; --gold-tint:#F6EEDA; --red:#C75C4A; --red-tint:#FBEAE6;
+  --blue:#3F6CB5; --blue-tint:#E7EEF8;
+  --display:"Fraunces","Noto Sans Khmer",serif;
+  --body:"Instrument Sans","Noto Sans Khmer",sans-serif;
+  --kh:"Noto Sans Khmer","Instrument Sans",sans-serif;
+  --mono:"Spline Sans Mono","Noto Sans Khmer",monospace;
+  --r-lg:22px; --r-md:14px;
+  --shadow-lift:0 1px 2px rgba(21,32,25,.05),0 8px 28px rgba(21,32,25,.08);
+  --shadow-deep:0 2px 6px rgba(21,32,25,.08),0 24px 64px rgba(21,32,25,.14);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--kh);background:var(--paper);color:var(--ink);line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--sage);color:#fff}
+.wrap{max-width:980px;margin:0 auto;padding:0 22px}
+
+/* grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.3;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- header ---------- */
+.top{
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(760px 420px at 82% 0%,rgba(94,139,115,.18),transparent 60%),
+    radial-gradient(620px 420px at 4% 30%,rgba(201,162,75,.1),transparent 60%),
+    linear-gradient(180deg,var(--paper-warm),var(--paper) 78%);
+  border-bottom:1px solid var(--line);
+}
+.top::after{
+  content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(21,32,25,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(21,32,25,.04) 1px,transparent 1px);
+  background-size:54px 54px;
+  mask-image:radial-gradient(620px 360px at 75% 10%,rgba(0,0,0,.8),transparent 78%);
+  -webkit-mask-image:radial-gradient(620px 360px at 75% 10%,rgba(0,0,0,.8),transparent 78%);
+}
+.top-inner{position:relative;z-index:1;padding:30px 0 44px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:34px}
+.logo{display:flex;align-items:center;gap:11px}
+.logo-mark{width:38px;height:38px;border-radius:11px;background:var(--sage-deep);display:grid;place-items:center;color:#fff;flex-shrink:0}
+.logo-mark svg{width:21px;height:21px}
+.logo-name{font-family:var(--display);font-weight:620;font-size:19px;letter-spacing:-.01em}
+.logo-name span{color:var(--sage-deep)}
+.print-btn{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--kh);font-weight:600;font-size:14px;
+  padding:10px 18px;border-radius:100px;border:1px solid var(--line-dash);background:#fff;color:var(--ink);cursor:pointer;
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.print-btn:hover{background:var(--sage-tint);border-color:var(--sage);transform:translateY(-1px)}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--sage-deep)}
+.eyebrow::before{content:"";width:22px;height:1px;background:var(--sage)}
+.top h1{font-family:var(--display);font-weight:560;font-size:clamp(32px,5.4vw,52px);line-height:1.1;letter-spacing:-.01em;margin:16px 0 14px}
+.top h1 em{font-style:italic;font-weight:480;color:var(--sage-deep)}
+.top .lede{font-size:clamp(15px,1.7vw,18px);color:var(--ink-soft);max-width:60ch}
+.top .meta{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:6px 14px;font-size:12.5px;font-weight:500;color:var(--ink-soft);box-shadow:0 1px 5px rgba(21,32,25,.05)}
+.pill b{color:var(--sage-deep);font-weight:600}
+
+/* ---------- sticky section nav ---------- */
+.secnav{position:sticky;top:0;z-index:90;background:rgba(250,249,245,.85);backdrop-filter:blur(14px) saturate(1.4);-webkit-backdrop-filter:blur(14px) saturate(1.4);border-bottom:1px solid var(--line)}
+.secnav-inner{display:flex;gap:4px;overflow-x:auto;padding:9px 0;scrollbar-width:none}
+.secnav-inner::-webkit-scrollbar{display:none}
+.secnav a{flex-shrink:0;text-decoration:none;color:var(--ink-soft);font-size:13.5px;font-weight:500;padding:7px 13px;border-radius:100px;white-space:nowrap;transition:background .2s,color .2s}
+.secnav a:hover{background:var(--sage-tint);color:var(--sage-deep)}
+
+/* ---------- sections ---------- */
+section{padding:54px 0;border-bottom:1px dashed var(--line-dash)}
+section:last-of-type{border-bottom:0}
+.sec-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:26px}
+.sec-no{
+  font-family:var(--display);font-style:italic;font-weight:480;font-size:30px;color:#fff;
+  width:54px;height:54px;border-radius:15px;background:linear-gradient(150deg,var(--sage),var(--sage-deep));
+  display:grid;place-items:center;flex-shrink:0;box-shadow:0 6px 18px rgba(61,107,85,.28);line-height:1;
+}
+.sec-title{font-family:var(--display);font-weight:560;font-size:clamp(24px,3.4vw,34px);line-height:1.12;letter-spacing:-.01em}
+.sec-en{display:inline-block;margin-left:0;margin-top:3px;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--sage-deep);background:var(--sage-tint);border-radius:6px;padding:3px 9px}
+.sec-purpose{font-size:16px;color:var(--ink-soft);max-width:62ch;margin-bottom:8px}
+
+/* layout for screen sections */
+.sec-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:40px;align-items:start}
+@media (max-width:820px){.sec-grid{grid-template-columns:1fr;gap:30px}}
+
+/* numbered steps */
+.steps{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.steps li{display:flex;gap:14px;align-items:flex-start;padding:14px 2px;border-top:1px dashed var(--line-dash)}
+.steps li:first-child{border-top:0}
+.step-n{width:27px;height:27px;border-radius:50%;background:var(--sage-tint);color:var(--sage-deep);font-family:var(--mono);font-weight:600;font-size:13px;display:grid;place-items:center;flex-shrink:0;margin-top:1px}
+.steps li b{font-weight:600;color:var(--ink)}
+.steps li p{font-size:14.5px;color:var(--ink-soft);margin-top:1px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--sage-deep);background:var(--sage-tint);border-radius:6px;padding:2px 8px;vertical-align:middle}
+
+/* callouts */
+.note{border-radius:var(--r-md);padding:14px 16px 14px 16px;margin-top:16px;font-size:14px;display:flex;gap:11px;align-items:flex-start;line-height:1.6}
+.note .ic{flex-shrink:0;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;margin-top:1px}
+.note.tip{background:var(--sage-tint);border:1px solid rgba(94,139,115,.25)}
+.note.tip .ic{background:var(--sage);color:#fff}
+.note.tip b{color:var(--sage-deep)}
+.note.warn{background:var(--red-tint);border:1px solid rgba(199,92,74,.28)}
+.note.warn .ic{background:var(--red);color:#fff}
+.note.warn b{color:var(--red)}
+.note.gold{background:var(--gold-tint);border:1px solid rgba(201,162,75,.35)}
+.note.gold .ic{background:var(--gold);color:#fff}
+.note.gold b{color:#9a7a2c}
+
+/* generic card */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow-lift)}
+.card h4{font-family:var(--display);font-weight:580;font-size:17px;margin-bottom:10px}
+
+/* checklist */
+.check{list-style:none;display:flex;flex-direction:column;gap:11px}
+.check li{display:flex;gap:12px;align-items:flex-start;font-size:15px;color:var(--ink-soft)}
+.check .box{flex-shrink:0;width:22px;height:22px;border-radius:7px;background:var(--sage-tint);display:grid;place-items:center;margin-top:1px}
+.check .box svg{width:13px;height:13px;stroke:var(--sage-deep)}
+.check b{color:var(--ink);font-weight:600}
+
+/* daily flow strip */
+.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+@media (max-width:720px){.flow{grid-template-columns:1fr}}
+.flow-step{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 20px;box-shadow:var(--shadow-lift)}
+.flow-step .fn{font-family:var(--mono);font-size:12px;color:var(--sage-deep);font-weight:600;letter-spacing:.1em}
+.flow-step .fi{width:46px;height:46px;border-radius:13px;background:var(--sage-tint);color:var(--sage-deep);display:grid;place-items:center;margin:12px 0 14px}
+.flow-step .fi svg{width:23px;height:23px}
+.flow-step h4{font-family:var(--display);font-weight:580;font-size:18px;margin-bottom:5px}
+.flow-step p{font-size:14px;color:var(--ink-soft)}
+.flow-step .arrow{position:absolute;right:-19px;top:50%;transform:translateY(-50%);z-index:2;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;color:var(--sage-deep);font-weight:700}
+@media (max-width:720px){.flow-step .arrow{right:50%;top:auto;bottom:-19px;transform:translateX(50%) rotate(90deg)}}
+
+/* ---------- phone mockups ---------- */
+.pmocks{display:flex;flex-direction:column;gap:18px;position:sticky;top:62px}
+@media (max-width:820px){.pmocks{position:static;flex-direction:row;flex-wrap:wrap;justify-content:center}}
+.pmock{width:100%;max-width:260px;margin:0 auto;border-radius:30px;border:1px solid rgba(21,32,25,.12);overflow:hidden;box-shadow:var(--shadow-deep);background:#fff}
+.pmock-cap{text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-top:9px;letter-spacing:.04em}
+/* success green */
+.scr{height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:24px 18px;gap:6px}
+.scr.in{background:#16a34a}
+.scr.out{background:var(--blue)}
+.scr.done{background:#E0A93B}
+.scr .big{font-size:40px;line-height:1;margin-bottom:8px}
+.scr .nm{font-family:var(--kh);font-size:22px;font-weight:700}
+.scr .dp{font-family:var(--kh);font-size:13px;opacity:.9}
+.scr .box{margin-top:14px;background:rgba(255,255,255,.2);border-radius:16px;padding:11px 20px}
+.scr .box .l{font-family:var(--kh);font-size:13px;font-weight:600}
+.scr .box .t{font-size:26px;font-weight:700;margin-top:2px}
+/* viewfinder */
+.scr.view{background:#0b0b0b;position:relative;justify-content:space-between;align-items:stretch}
+.vf-top{display:flex;justify-content:space-between;align-items:center}
+.vf-top .l{font-family:var(--kh);color:#fff;font-weight:700;font-size:14px}
+.vf-top .ai{font-family:var(--mono);color:#6ee7a8;font-size:10px;background:rgba(0,0,0,.4);border-radius:100px;padding:3px 8px;display:inline-flex;gap:4px;align-items:center}
+.vf-frame{align-self:center;width:150px;height:150px;position:relative;margin:auto 0}
+.vf-frame i{position:absolute;width:30px;height:30px;border:3px solid #fff}
+.vf-frame .a{top:0;left:0;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
+.vf-frame .b{top:0;right:0;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+.vf-frame .c{bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 8px}
+.vf-frame .d{bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 8px 0}
+.vf-frame .ln{position:absolute;left:4px;right:4px;height:2px;background:#6ee7a8;box-shadow:0 0 8px 2px rgba(110,231,168,.7);top:50%;animation:vscan 2s ease-in-out infinite}
+@keyframes vscan{0%,100%{top:6%}50%{top:94%}}
+.vf-hint{font-family:var(--kh);color:rgba(255,255,255,.7);font-size:12.5px;text-align:center}
+/* offline banner mock */
+.offline-mock{display:flex;align-items:center;justify-content:center;gap:7px;background:#dc2626;color:#fff;font-family:var(--kh);font-size:12.5px;font-weight:600;padding:9px 12px;text-align:center}
+
+/* ---------- mini UI samples ---------- */
+.stat-row{display:flex;gap:10px;margin-top:6px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:13px;text-align:center;box-shadow:var(--shadow-lift)}
+.stat .v{font-size:24px;font-weight:700;line-height:1}
+.stat .k{font-family:var(--kh);font-size:11.5px;color:var(--ink-faint);margin-top:5px}
+.stat.g .v{color:#16a34a}.stat.b .v{color:var(--sage-deep)}.stat.r .v{color:var(--red)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.lg{display:inline-flex;align-items:center;gap:7px;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:100px;padding:5px 12px}
+.lg .dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
+.lg .dot.ok{background:#dcfce7;color:#16a34a}
+.lg .dot.no{background:var(--red-tint);color:var(--red)}
+.lg .dot.wait{background:#f3f4f6;color:#9ca3af}
+
+/* ---------- troubleshooting table ---------- */
+.tbl{width:100%;border-collapse:separate;border-spacing:0;margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-lift)}
+.tbl th,.tbl td{text-align:left;padding:13px 16px;font-size:14px;vertical-align:top}
+.tbl thead th{background:var(--sage-tint);color:var(--sage-deep);font-family:var(--kh);font-weight:700;font-size:13px;letter-spacing:.02em}
+.tbl tbody tr{border-top:1px solid var(--line)}
+.tbl .msg{font-family:var(--kh);color:var(--red);font-weight:600;background:var(--red-tint);border-radius:8px;padding:5px 9px;display:inline-block;font-size:13px}
+.tbl td:nth-child(2){color:var(--ink-soft)}
+.tbl td:nth-child(3){color:var(--ink)}
+@media (max-width:720px){
+  .tbl,.tbl thead,.tbl tbody,.tbl th,.tbl td,.tbl tr{display:block}
+  .tbl thead{display:none}
+  .tbl tbody tr{padding:8px 4px}
+  .tbl td{padding:5px 14px;border:0}
+  .tbl td::before{content:attr(data-l);display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:3px}
+}
+
+/* ---------- quick reference ---------- */
+.ref-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:8px}
+@media (max-width:720px){.ref-grid{grid-template-columns:1fr}}
+.ref{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow-lift)}
+.ref h4{font-family:var(--display);font-weight:580;font-size:18px;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.ref h4 .ic{width:32px;height:32px;border-radius:9px;background:var(--sage-tint);color:var(--sage-deep);display:grid;place-items:center}
+.ref h4 .ic svg{width:17px;height:17px}
+.ref .row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px dashed var(--line-dash);font-size:14px}
+.ref .row:first-of-type{border-top:0}
+.ref .row .k{color:var(--ink-soft)}
+.ref .row .v{font-family:var(--mono);font-weight:600;color:var(--ink);text-align:right;white-space:nowrap}
+.ref .row .v.g{color:#16a34a}.ref .row .v.y{color:var(--gold)}.ref .row .v.r{color:var(--red)}
+
+/* ---------- footer ---------- */
+footer{background:var(--card);border-top:1px solid var(--line);padding:34px 0}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.foot .kh{font-family:var(--kh);font-size:13px;color:var(--ink-faint)}
+.foot .tag{font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
+
+/* ---------- print ---------- */
+@media print{
+  body::before{display:none}
+  .secnav,.print-btn,.vf-frame .ln{display:none!important}
+  body{background:#fff}
+  .top{background:#fff}
+  .top::after{display:none}
+  section{page-break-inside:auto;break-inside:auto;padding:18px 0;border-bottom:1px solid #ddd}
+  .sec-head,.flow,.ref-grid,.tbl,.flow-step,.card,.pmock,.note{page-break-inside:avoid;break-inside:avoid}
+  .pmocks{position:static}
+  .sec-grid{grid-template-columns:1fr}
+  .scr{height:240px}
+  @page{margin:12mm}
+  a[href]{color:inherit;text-decoration:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand">
+      <div class="logo">
+        <span class="logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/>
+          </svg>
+        </span>
+        <span class="logo-name">Bati<span>&nbsp;Attendance</span></span>
+      </div>
+      <button class="print-btn" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+        បោះពុម្ព
+      </button>
+    </div>
+    <span class="eyebrow">មគ្គុទេសក៍ប្រើប្រាស់ · USER GUIDE</span>
+    <h1>របៀបប្រើ <em>Bati Attendance</em></h1>
+    <p class="lede">សៀវភៅណែនាំសម្រាប់ <b>ប្រធានក្រុម / អ្នកគ្រប់គ្រង</b> ដែលប្រើកម្មវិធីនេះរៀងរាល់ថ្ងៃ — ស្កែនវត្តមាន មើលផ្ទាំងគ្រប់គ្រង កត់ត្រាច្បាប់ឈប់ បើកប្រាក់រង្វាន់ និងបោះពុម្ពកាត QR។</p>
+    <div class="meta">
+      <span class="pill">📱 <b>មិនបាច់ទាញយក app</b> — ដំណើរការក្នុង browser</span>
+      <span class="pill">🌐 <b>ត្រូវការអ៊ីនធឺណិត</b></span>
+      <span class="pill">🇰🇭 ភាសាខ្មែរ</span>
+    </div>
+  </div>
+</header>
+
+<!-- ============ SECTION NAV ============ -->
+<nav class="secnav">
+  <div class="wrap secnav-inner">
+    <a href="#overview">ទិដ្ឋភាពទូទៅ</a>
+    <a href="#before">មុនពេលចាប់ផ្ដើម</a>
+    <a href="#scan">១ · ស្កែន</a>
+    <a href="#dashboard">២ · ផ្ទាំងគ្រប់គ្រង</a>
+    <a href="#leave">៣ · ច្បាប់ឈប់</a>
+    <a href="#payroll">៤ · ប្រាក់បៀវត្សរ៍</a>
+    <a href="#employees">៥ · បុគ្គលិក & QR</a>
+    <a href="#trouble">ដោះស្រាយបញ្ហា</a>
+    <a href="#reference">ឯកសារយោង</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ============ OVERVIEW ============ -->
+<section id="overview" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title">ដំណើរការប្រចាំថ្ងៃ</h2>
+      <p class="sec-purpose" style="margin-top:8px">រាល់ការស្កែនមាន ៣ ជំហានសាមញ្ញ។ ប្រធានក្រុមកាន់ទូរស័ព្ទ ស្កែនកាត QR របស់បុគ្គលិកម្នាក់ៗ នៅមាត់ទ្វារ។</p>
+    </div>
+  </div>
+  <div class="flow">
+    <div class="flow-step">
+      <div class="fn">ជំហាន ០១</div>
+      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM21 14h.01"/></svg></div>
+      <h4>ស្កែនកាត QR</h4>
+      <p>ប្រធានក្រុមតម្រង់កាមេរ៉ាខាងក្រោយ ទៅកាន់កាត QR របស់បុគ្គលិក។</p>
+      <div class="arrow">→</div>
+    </div>
+    <div class="flow-step">
+      <div class="fn">ជំហាន ០២</div>
+      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="11" r="3"/><path d="M7 19a5 5 0 0 1 10 0"/></svg></div>
+      <h4>ផ្ទៀងផ្ទាត់មុខ</h4>
+      <p>កាមេរ៉ាថតមុខបុគ្គលិក ហើយប្រៀបធៀបនឹងរូបដែលបានចុះបញ្ជី។</p>
+      <div class="arrow">→</div>
+    </div>
+    <div class="flow-step">
+      <div class="fn">ជំហាន ០៣</div>
+      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></div>
+      <h4>បញ្ជូនទៅ Telegram</h4>
+      <p>កំណត់ត្រា (រូបថត ឈ្មោះ ម៉ោង) បញ្ជូនទៅក្រុម Telegram ភ្លាមៗ — <b>មិនអាចកែបាន</b>។</p>
+    </div>
+  </div>
+  <div class="note tip">
+    <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+    <div><b>ហេតុអ្វីត្រូវ Telegram?</b> ពេលរូបថតបញ្ជូនទៅក្រុម Telegram រួច គ្មាននរណាម្នាក់អាចលុប ឬកែម៉ោងវិញបានទេ — ទាំងបុគ្គលិក ទាំងប្រធានក្រុម។ នេះជាភស្តុតាងវត្តមានពិតប្រាកដ។</div>
+  </div>
+</section>
+
+<!-- ============ BEFORE YOU START ============ -->
+<section id="before" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title">មុនពេលចាប់ផ្ដើម</h2>
+      <p class="sec-purpose" style="margin-top:8px">ពិនិត្យរបស់ ៤ យ៉ាងនេះ ឲ្យរួចរាល់ មុនពេលស្កែនបុគ្គលិកដំបូង។</p>
+    </div>
+  </div>
+  <div class="card" style="max-width:640px">
+    <ul class="check">
+      <li><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>មានអ៊ីនធឺណិត</b> — Wi-Fi ឬទិន្នន័យទូរស័ព្ទ។ បើគ្មាន ការស្កែននឹង <b>មិនកត់ត្រា</b> ទេ។</div></li>
+      <li><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>បានចុះបញ្ជីរូបមុខបុគ្គលិក</b> — នៅទំព័រ <span class="chip">បុគ្គលិក · Employees</span> (មើលផ្នែកទី ៥)។</div></li>
+      <li><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>បានបោះពុម្ពកាត QR</b> ឲ្យបុគ្គលិកគ្រប់គ្នា — បុគ្គលិកម្នាក់មានកាតផ្ទាល់ខ្លួន។</div></li>
+      <li><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>រង់ចាំ Face AI ផ្ទុករួច</b> — នៅទំព័រស្កែន បង្ហាញ <span class="chip">✓ Face AI · N enrolled</span> ពណ៌បៃតង។</div></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 1. SCAN ============ -->
+<section id="scan" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-no">១</div>
+    <div>
+      <h2 class="sec-title">ស្កែនវត្តមាន</h2>
+      <span class="sec-en">ស្កែន · Scan</span>
+      <p class="sec-purpose" style="margin-top:10px">ស្កែនបុគ្គលិកចូល និងចេញពីការងារ។ នេះជាមុខងារសំខាន់បំផុតដែលប្រើរៀងរាល់ថ្ងៃ។</p>
+    </div>
+  </div>
+
+  <div class="sec-grid">
+    <div>
+      <ol class="steps">
+        <li><span class="step-n">១</span><div><b>ចុចប៊ូតុងកាមេរ៉ា</b><p>រង្វង់ពណ៌សធំ — <span class="chip">ចុចដើម្បីចាប់ផ្ដើម</span>។ កាមេរ៉ានឹងបើក។</p></div></li>
+        <li><span class="step-n">២</span><div><b>តម្រង់ទៅកាត QR</b><p>តម្រង់កាមេរ៉ា<b>ខាងក្រោយ</b> ទៅកាន់កាត QR របស់បុគ្គលិក ឲ្យចូលក្នុងស៊ុមការ៉េ។</p></div></li>
+        <li><span class="step-n">៣</span><div><b>ឲ្យបុគ្គលិកបង្ហាញមុខ</b><p>ប្រព័ន្ធផ្ទៀងផ្ទាត់មុខដោយស្វ័យប្រវត្តិ — មិនបាច់ចុចអ្វីទេ។</p></div></li>
+        <li><span class="step-n">៤</span><div><b>មើលលទ្ធផល</b><p>អេក្រង់<b style="color:#16a34a">ពណ៌បៃតង</b> = ចូលធ្វើការ · អេក្រង់<b style="color:var(--blue)">ពណ៌ខៀវ</b> = ចេញពីការងារ។</p></div></li>
+        <li><span class="step-n">៥</span><div><b>ស្កែនបន្ទាប់</b><p>អេក្រង់ត្រឡប់ដោយខ្លួនឯងក្នុង ~២,៥ វិនាទី — បន្តស្កែនបុគ្គលិកបន្ទាប់បានភ្លាម។</p></div></li>
+      </ol>
+
+      <div class="note tip">
+        <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg></span>
+        <div><b>ចូល និងចេញ៖</b> ស្កែនលើកទី ១ = <b>ចូល</b>។ ស្កែនម្ដងទៀតក្នុងវេនដដែល = <b>ចេញ</b>។ បើស្កែនលើកទី ៣ អេក្រង់ពណ៌លឿងបង្ហាញ <span class="chip">ស្កែនគ្រប់គ្រាន់ហើយ</span>។</div>
+      </div>
+      <div class="note gold">
+        <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div><b>វេនព្រឹក និងវេនរសៀល</b> កំណត់ដោយម៉ោងស្កែនដោយស្វ័យប្រវត្តិ៖ មុនម៉ោង ១២:០០ = <b>វេនព្រឹក</b>, ម៉ោង ១២:០០ ឡើង = <b>វេនរសៀល</b>។</div>
+      </div>
+      <div class="note warn">
+        <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+        <div><b>បើគ្មានអ៊ីនធឺណិត៖</b> របាពណ៌ក្រហមលេចឡើងពីលើ ហើយ <b>ការស្កែនមិនកត់ត្រាទេ</b>។ ត្រូវភ្ជាប់អ៊ីនធឺណិតជាមុនសិន។</div>
+      </div>
+    </div>
+
+    <div class="pmocks">
+      <div>
+        <div class="pmock">
+          <div class="scr view">
+            <div class="vf-top"><span class="l">ស្កែន QR វត្តមាន</span><span class="ai">✓ Face AI</span></div>
+            <div class="vf-frame"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i><span class="ln"></span></div>
+            <div class="vf-hint">តម្រង់កាត QR ចូលក្នុងស៊ុម</div>
+          </div>
+        </div>
+        <div class="pmock-cap">អេក្រង់ស្កែន</div>
+      </div>
+      <div>
+        <div class="pmock">
+          <div class="scr in">
+            <div class="big">→</div>
+            <div class="nm">ស្រីមុំ កែវ</div>
+            <div class="dp">ផ្នែកដេរ</div>
+            <div class="box"><div class="l">ចូលធ្វើការ · វេនព្រឹក</div><div class="t">06:58</div></div>
+          </div>
+        </div>
+        <div class="pmock-cap">ជោគជ័យ — ចូលធ្វើការ</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. DASHBOARD ============ -->
+<section id="dashboard" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-no">២</div>
+    <div>
+      <h2 class="sec-title">ផ្ទាំងគ្រប់គ្រង</h2>
+      <span class="sec-en">ផ្ទាំងគ្រប់គ្រង · Dashboard</span>
+      <p class="sec-purpose" style="margin-top:10px">មើលវត្តមានប្រចាំថ្ងៃ — អ្នកណាមកធ្វើការ អ្នកណាអវត្តមាន។</p>
+    </div>
+  </div>
+
+  <div class="sec-grid">
+    <div>
+      <ol class="steps">
+        <li><span class="step-n">១</span><div><b>មើលលេខសង្ខេប</b><p>បីប្រអប់ខាងលើ៖ ចូលព្រឹក · ចូលរសៀល · អវត្តមាន។</p></div></li>
+        <li><span class="step-n">២</span><div><b>ប្ដូរថ្ងៃ</b><p>ចុចព្រួញ <span class="chip">‹ ›</span> ឬចុចលើកាលបរិច្ឆេទ ដើម្បីមើលថ្ងៃមុនៗ។ ចុច <span class="chip">ថ្ងៃនេះ</span> ត្រឡប់មកថ្ងៃនេះវិញ។</p></div></li>
+        <li><span class="step-n">៣</span><div><b>អានតារាង</b><p>ម៉ោងពណ៌<b style="color:#16a34a">បៃតង</b> = មកធ្វើការ · <b style="color:var(--red)">✕ ក្រហម</b> = អវត្តមាន។ មានបង្ហាញចំនួនថ្ងៃ ប្រាក់រង្វាន់ និងច្បាប់នៅសល់។</p></div></li>
+        <li><span class="step-n">៤</span><div><b>តម្រងតាមផ្នែក</b><p>ចុចឈ្មោះផ្នែក ដើម្បីមើលតែបុគ្គលិកក្នុងផ្នែកនោះ។</p></div></li>
+        <li><span class="step-n">៥</span><div><b>ទាញយកទិន្នន័យ</b><p>ចុច <span class="chip">ទាញយកទិន្នន័យ</span> ដើម្បីទាញយកជា CSV (បើកក្នុង Excel)។</p></div></li>
+      </ol>
+      <div class="note tip">
+        <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.5 0 4.7 1 6.4 2.6L21 8"/><path d="M21 3v5h-5"/></svg></span>
+        <div>ផ្ទាំងគ្រប់គ្រងធ្វើបច្ចុប្បន្នភាពដោយខ្លួនឯងរៀងរាល់ ១ នាទី — តែពេលអ្នកមើល<b>ថ្ងៃនេះ</b> ប៉ុណ្ណោះ។</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h4>លេខសង្ខេបប្រចាំថ្ងៃ</h4>
+        <div class="stat-row">
+          <div class="stat g"><div class="v">38</div><div class="k">ចូលព្រឹក</div></div>
+          <div class="stat b"><div class="v">36</div><div class="k">ចូលរសៀល</div></div>
+          <div class="stat r"><div class="v">3</div><div class="k">អវត្តមាន</div></div>
+        </div>
+        <div class="legend">
+          <span class="lg"><span class="dot ok">✓</span> មកធ្វើការ (ម៉ោងបៃតង)</span>
+          <span class="lg"><span class="dot no">✕</span> អវត្តមាន</span>
+          <span class="lg"><span class="dot wait">–</span> មិនទាន់ដល់វេន</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. LEAVE ============ -->
+<section id="leave" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-no">៣</div>
+    <div>
+      <h2 class="sec-title">ច្បាប់ឈប់សម្រាក</h2>
+      <span class="sec-en">ច្បាប់ឈប់ · Leave</span>
+      <p class="sec-purpose" style="margin-top:10px">កត់ត្រា និងគ្រប់គ្រងច្បាប់ឈប់សម្រាកប្រចាំឆ្នាំរបស់បុគ្គលិក។</p>
+    </div>
+  </div>
+
+  <div class="sec-grid">
+    <div>
+      <ol class="steps">
+        <li><span class="step-n">១</span><div><b>ចុច "បន្ថែម"</b><p>ចុចប៊ូតុង <span class="chip">+ បន្ថែម</span> លើបុគ្គលិកដែលត្រូវកត់ច្បាប់។</p></div></li>
+        <li><span class="step-n">២</span><div><b>ជ្រើសថ្ងៃ និងប្រភេទ</b><p>ជ្រើសកាលបរិច្ឆេទ ហើយជ្រើស <span class="chip">ពេញមួយថ្ងៃ</span> ឬ <span class="chip">កន្លះថ្ងៃ</span>។</p></div></li>
+        <li><span class="step-n">៣</span><div><b>រក្សាទុក</b><p>ចុច <span class="chip">រក្សាទុក</span>។ រង្វង់នឹងបង្ហាញចំនួនថ្ងៃដែលបានប្រើ និងនៅសល់។</p></div></li>
+        <li><span class="step-n">៤</span><div><b>លុបច្បាប់ (បើចាំបាច់)</b><p>ចុច <span class="chip">✕</span> លើកំណត់ត្រាច្បាប់ — មានប្រអប់បញ្ជាក់មុនលុប។</p></div></li>
+      </ol>
+      <div class="note warn">
+        <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+        <div>ប្រព័ន្ធនឹង<b>បដិសេធ</b> បើ៖ លើស <b>១,៥ ថ្ងៃ/ខែ</b> · ច្បាប់ប្រចាំឆ្នាំអស់ · ឬកត់ច្បាប់ថ្ងៃដដែលពីរដង។</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h4>ច្បាប់ប្រចាំឆ្នាំ</h4>
+        <div class="ref" style="border:0;padding:0;box-shadow:none">
+          <div class="row"><span class="k">សិទ្ធិទូទៅ</span><span class="v g">១៨ ថ្ងៃ/ឆ្នាំ</span></div>
+          <div class="row"><span class="k">ធ្វើការ ១០ ឆ្នាំឡើង</span><span class="v g">១៩ ថ្ងៃ/ឆ្នាំ</span></div>
+          <div class="row"><span class="k">អតិបរមាក្នុង ១ ខែ</span><span class="v y">១,៥ ថ្ងៃ</span></div>
+          <div class="row"><span class="k">ប្រភេទ</span><span class="v">ពេញ / កន្លះ</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. PAYROLL ============ -->
+<section id="payroll" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-no">៤</div>
+    <div>
+      <h2 class="sec-title">ប្រាក់បៀវត្សរ៍</h2>
+      <span class="sec-en">ប្រាក់បៀវត្សរ៍ · Payroll</span>
+      <p class="sec-purpose" style="margin-top:10px">គណនា និងបើកប្រាក់រង្វាន់វត្តមានប្រចាំខែ។</p>
+    </div>
+  </div>
+
+  <div class="sec-grid">
+    <div>
+      <ol class="steps">
+        <li><span class="step-n">១</span><div><b>ជ្រើសខែ</b><p>ប្រអប់ជ្រើសខែនៅខាងលើ (លំនាំដើម៖ ខែមុន)។</p></div></li>
+        <li><span class="step-n">២</span><div><b>អានថ្ងៃសរុប</b><p>ថ្ងៃសរុប = ថ្ងៃមកធ្វើការ + ច្បាប់ឈប់ (គិតក្នុង ២៦ ថ្ងៃ)។</p></div></li>
+        <li><span class="step-n">៣</span><div><b>មើលប្រាក់រង្វាន់</b><p>គណនាដោយស្វ័យប្រវត្តិ៖ <b style="color:#16a34a">$១៦</b> បើគ្រប់ ២៦ ថ្ងៃ · <b style="color:var(--gold)">$៦</b> បើខ្វះ ១ ថ្ងៃ · <b style="color:var(--red)">$០</b> បើខ្វះច្រើន។</p></div></li>
+        <li><span class="step-n">៤</span><div><b>បើកប្រាក់</b><p>ចុច <span class="chip">កត់ត្រាថាបានបើក</span> ពេលបើកប្រាក់រួច។ ស្ថានភាពប្ដូរទៅ <span class="chip">បានបើកប្រាក់</span>។</p></div></li>
+      </ol>
+      <div class="note gold">
+        <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div>សម្រាប់<b>ខែបច្ចុប្បន្ន</b> ប្រាក់រង្វាន់បង្ហាញ <span class="chip">កំពុងរង់ចាំ</span> — វាគណនាតែពេលខែចប់ប៉ុណ្ណោះ។</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h4>គោលការណ៍ប្រាក់រង្វាន់</h4>
+        <div class="ref" style="border:0;padding:0;box-shadow:none">
+          <div class="row"><span class="k">គ្រប់ ២៦ ថ្ងៃ</span><span class="v g">$១៦</span></div>
+          <div class="row"><span class="k">ខ្វះ ១ ថ្ងៃ (២៥)</span><span class="v y">$៦</span></div>
+          <div class="row"><span class="k">ខ្វះ ២ ថ្ងៃ ឬច្រើន</span><span class="v r">$០</span></div>
+          <div class="row"><span class="k">ខែបច្ចុប្បន្ន</span><span class="v">កំពុងរង់ចាំ</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. EMPLOYEES & QR ============ -->
+<section id="employees" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div class="sec-no">៥</div>
+    <div>
+      <h2 class="sec-title">បុគ្គលិក និងកាត QR</h2>
+      <span class="sec-en">បុគ្គលិក · Employees</span>
+      <p class="sec-purpose" style="margin-top:10px">គ្រប់គ្រងបុគ្គលិក បោះពុម្ពកាត QR និងចុះបញ្ជីរូបមុខ។</p>
+    </div>
+  </div>
+
+  <div class="sec-grid">
+    <div>
+      <ol class="steps">
+        <li><span class="step-n">១</span><div><b>បោះពុម្ពកាត QR</b><p>ចុច <span class="chip">បោះពុម្ភកាត QR</span> → ប្រអប់បោះពុម្ពបើក (ទំហំ A4, ២ កាត/ជួរ)។ កាត់តាមបន្ទាត់ ហើយចែកឲ្យបុគ្គលិក។</p></div></li>
+        <li><span class="step-n">២</span><div><b>ចុះបញ្ជីរូបមុខ</b><p>ចុចលើរង្វង់រូបរបស់បុគ្គលិក → ជ្រើសរូបថត។ រូបនឹងបញ្ជូនទៅ Telegram ដោយស្វ័យប្រវត្តិ (ជាភស្តុតាង)។</p></div></li>
+        <li><span class="step-n">៣</span><div><b>ពិនិត្យស្ថានភាពរូប</b><p><b style="color:var(--sage-deep)">✓ Photo</b> = មានរូបរួច · <b>+ Photo</b> = មិនទាន់មាន។ បុគ្គលិកគ្រប់គ្នាត្រូវមានរូប ទើបស្កែនមុខបាន។</p></div></li>
+        <li><span class="step-n">៤</span><div><b>ធ្វើបច្ចុប្បន្នភាពបញ្ជី</b><p>ចុច <span class="chip">Seed Supabase</span> ឬ <span class="chip">ធ្វើបច្ចុប្បន្នភាព</span> ដើម្បីធ្វើសមកាលកម្មបញ្ជីបុគ្គលិក។</p></div></li>
+      </ol>
+      <div class="note tip">
+        <span class="ic"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div>រូបមុខច្បាស់ ត្រង់មុខ ពន្លឺល្អ — ធ្វើឲ្យការផ្ទៀងផ្ទាត់នៅពេលស្កែនមានភាពត្រឹមត្រូវ និងលឿន។</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h4>កាត QR បុគ្គលិក</h4>
+        <div style="display:flex;gap:14px;align-items:center">
+          <div style="width:78px;height:78px;border-radius:12px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;flex-shrink:0">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="var(--ink)"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm13-2h3v2h-3v-2zm0 3h3v5h-2v-3h-1v-2zm-5-3h3v3h-2v-1h-1v-2zm0 4h2v4h-2v-4z"/></svg>
+          </div>
+          <div style="font-size:14px;color:var(--ink-soft)">
+            <div style="font-family:var(--kh);font-weight:700;color:var(--ink);font-size:15px">ស្រីមុំ កែវ</div>
+            <div style="font-family:var(--mono);font-size:12px;color:var(--ink-faint);margin-top:2px">អត្តលេខ · S-01-008</div>
+            <div style="font-family:var(--kh);margin-top:4px">បាទី ហូលឌីង</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TROUBLESHOOTING ============ -->
+<section id="trouble" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title">ដោះស្រាយបញ្ហា</h2>
+      <p class="sec-purpose" style="margin-top:8px">សារខុសដែលអាចលេចឡើងពេលស្កែន មូលហេតុ និងវិធីដោះស្រាយ។</p>
+    </div>
+  </div>
+  <table class="tbl">
+    <thead><tr><th>សារ</th><th>មូលហេតុ</th><th>ដំណោះស្រាយ</th></tr></thead>
+    <tbody>
+      <tr>
+        <td data-l="សារ"><span class="msg">គ្មានអ៊ីនធឺណិត — ការស្កែនមិនអាចកត់ត្រាបានទេ</span></td>
+        <td data-l="មូលហេតុ">ទូរស័ព្ទផ្ដាច់ពី Wi-Fi ឬទិន្នន័យ។</td>
+        <td data-l="ដំណោះស្រាយ">ភ្ជាប់អ៊ីនធឺណិតវិញ រួចស្កែនម្ដងទៀត។</td>
+      </tr>
+      <tr>
+        <td data-l="សារ"><span class="msg">QR មិនត្រឹមត្រូវ</span></td>
+        <td data-l="មូលហេតុ">កាតខូច ឬមិនមែនកាត Bati។</td>
+        <td data-l="ដំណោះស្រាយ">ប្រើកាត QR ត្រឹមត្រូវ ឬបោះពុម្ពកាតថ្មី។</td>
+      </tr>
+      <tr>
+        <td data-l="សារ"><span class="msg">មុខមិនច្បាស់ — សូមឲ្យបុគ្គលិកបង្ហាញមុខ</span></td>
+        <td data-l="មូលហេតុ">មុខមិនឃើញ ងងឹត ឬនៅឆ្ងាយ។</td>
+        <td data-l="ដំណោះស្រាយ">ឲ្យបុគ្គលិកក្រឡេកមុខ ត្រង់ ក្នុងពន្លឺល្អ។</td>
+      </tr>
+      <tr>
+        <td data-l="សារ"><span class="msg">មុខមិនត្រូវ (N% ត្រូវគ្នា)</span></td>
+        <td data-l="មូលហេតុ">មុខមិនផ្គូផ្គងនឹងរូបចុះបញ្ជី ឬមិនទាន់មានរូប។</td>
+        <td data-l="ដំណោះស្រាយ">ព្យាយាមម្ដងទៀត។ បើនៅខុស ពិនិត្យ/ចុះបញ្ជីរូបឡើងវិញ។</td>
+      </tr>
+      <tr>
+        <td data-l="សារ"><span class="msg">មិនរកឃើញបុគ្គលិក</span></td>
+        <td data-l="មូលហេតុ">បុគ្គលិកមិននៅក្នុងបញ្ជី ឬមិន active។</td>
+        <td data-l="ដំណោះស្រាយ">ទៅទំព័រ បុគ្គលិក រួចធ្វើបច្ចុប្បន្នភាពបញ្ជី។</td>
+      </tr>
+      <tr>
+        <td data-l="សារ"><span class="msg">មិនអាចផ្ញើរូបទៅ Telegram</span></td>
+        <td data-l="មូលហេតុ">អ៊ីនធឺណិតខ្សោយ ពេលបញ្ជូនរូប។</td>
+        <td data-l="ដំណោះស្រាយ">ពិនិត្យអ៊ីនធឺណិត រួចស្កែនម្ដងទៀត។</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ QUICK REFERENCE ============ -->
+<section id="reference" style="scroll-margin-top:60px">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title">ឯកសារយោងរហ័ស</h2>
+      <p class="sec-purpose" style="margin-top:8px">តម្លៃសំខាន់ៗ ដែលគួរចងចាំ។</p>
+    </div>
+  </div>
+  <div class="ref-grid">
+    <div class="ref">
+      <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> វេនការងារ</h4>
+      <div class="row"><span class="k">វេនព្រឹក</span><span class="v">មុន ១២:០០</span></div>
+      <div class="row"><span class="k">វេនរសៀល</span><span class="v">១២:០០ ឡើង</span></div>
+      <div class="row"><span class="k">ព្រឹកបិទ</span><span class="v">១១:៣០</span></div>
+      <div class="row"><span class="k">រសៀលបិទ</span><span class="v">១៧:០០</span></div>
+    </div>
+    <div class="ref">
+      <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></span> ប្រាក់រង្វាន់</h4>
+      <div class="row"><span class="k">២៦ ថ្ងៃ</span><span class="v g">$១៦</span></div>
+      <div class="row"><span class="k">២៥ ថ្ងៃ</span><span class="v y">$៦</span></div>
+      <div class="row"><span class="k">≤ ២៤ ថ្ងៃ</span><span class="v r">$០</span></div>
+      <div class="row"><span class="k">សរុបក្នុងខែ</span><span class="v">២៦ ថ្ងៃ</span></div>
+    </div>
+    <div class="ref">
+      <h4><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span> ច្បាប់ឈប់</h4>
+      <div class="row"><span class="k">ក្នុង ១ ឆ្នាំ</span><span class="v g">១៨ ថ្ងៃ</span></div>
+      <div class="row"><span class="k">១០ ឆ្នាំឡើង</span><span class="v g">១៩ ថ្ងៃ</span></div>
+      <div class="row"><span class="k">អតិបរមា/ខែ</span><span class="v y">១,៥ ថ្ងៃ</span></div>
+      <div class="row"><span class="k">ប្រភេទ</span><span class="v">ពេញ / កន្លះ</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap foot">
+    <div class="logo">
+      <span class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM18 18h3v3h-3z"/>
+        </svg>
+      </span>
+      <span class="logo-name">Bati<span>&nbsp;Attendance</span></span>
+    </div>
+    <div class="kh">មគ្គុទេសក៍សម្រាប់ប្រធានក្រុម — វត្តមានដែលមិនអាចក្លែងបន្លំបាន</div>
+    <div class="tag">© 2026 Bati Holding</div>
+  </div>
+</footer>
+
+</body>
+</html>
