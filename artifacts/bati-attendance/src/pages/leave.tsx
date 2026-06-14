@@ -162,7 +162,7 @@ export default function LeavePage() {
               const detailRows: (string | number)[][] = [];
               entries.forEach(e => {
                 e.records.forEach(r => {
-                  detailRows.push([e.name, e.department, e.employee_id, r.date, r.type === "full" ? "Full Day" : "Half Day"]);
+                  detailRows.push([e.name, e.department, e.employee_id, r.date, r.type === "full" ? "ពេញមួយថ្ងៃ" : "កន្លះថ្ងៃ"]);
                 });
               });
               downloadCsv(
@@ -242,7 +242,7 @@ export default function LeavePage() {
                                   <div key={r.id} className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 text-xs">
                                     <span className="text-gray-600">{r.date}</span>
                                     <span className={`font-semibold ${r.type === "full" ? "text-orange-600" : "text-yellow-600"}`}>
-                                      {r.type === "full" ? "ពេញ" : "កន្លះ"}
+                                      {r.type === "full" ? "ពេញមួយថ្ងៃ" : "កន្លះថ្ងៃ"}
                                     </span>
                                     <button onClick={() => setDeleteTarget({ id: r.id, date: r.date })}
                                       className="text-gray-400 hover:text-red-500 -m-1 p-1.5 leading-none flex items-center"><X size={14} /></button>
@@ -286,7 +286,7 @@ export default function LeavePage() {
 
       {/* Leave form modal */}
       {form.open && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-5 shadow-xl">
             <h2 className="text-lg font-bold text-gray-900 mb-1 font-khmer">កត់ត្រាការឈប់សម្រាក</h2>
             <p className="text-sm font-khmer text-gray-500 mb-4">{form.name}</p>
