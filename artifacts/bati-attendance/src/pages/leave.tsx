@@ -264,6 +264,19 @@ export default function LeavePage() {
                             <Plus size={14} /> បន្ថែម
                           </button>
                         </div>
+                        {(() => {
+                          const today = new Date();
+                          const leaveEnd = new Date(emp.leaveYearTo);
+                          const daysLeft = Math.ceil((leaveEnd.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          if (daysLeft > 45 || emp.remaining <= 0) return null;
+                          const urgent = daysLeft <= 14;
+                          return (
+                            <div className={`mt-3 rounded-lg px-3 py-2 text-xs font-khmer flex items-start gap-1.5 ${urgent ? "bg-orange-50 border border-orange-200 text-orange-800" : "bg-yellow-50 border border-yellow-200 text-yellow-800"}`}>
+                              <span className="mt-px flex-shrink-0">⚠</span>
+                              <span>ច្បាប់ឈប់ប្រចាំឆ្នាំអស់ <strong>{daysLeft} ថ្ងៃ</strong>ទៀត — នៅសល់ <strong>{emp.remaining} ថ្ងៃ</strong> ត្រូវបើកប្រាក់</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}

@@ -50,6 +50,7 @@ export default function FinancePage() {
   const [deptFilter, setDeptFilter] = useState("all");
   const [paying, setPaying] = useState<string | null>(null);
   const [unpayTarget, setUnpayTarget] = useState<PayRow | null>(null);
+  const [holidayDays, setHolidayDays] = useState(0);
 
   const today = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -79,7 +80,7 @@ export default function FinancePage() {
       const empLeaves = leaves.filter((l) => l.employee_id === emp.id);
       const leavedays = empLeaves.reduce((s, l) => s + (l.type === "full" ? 1 : 0.5), 0);
       const presentDays = presentDates.size;
-      const effectiveDays = presentDays + leavedays;
+      const effectiveDays = presentDays + leavedays + holidayDays;
       const absences = Math.max(0, WORK_DAYS - effectiveDays);
       const { status, bonus } = calcBonus(effectiveDays, isCurrentMonth);
 
@@ -100,9 +101,10 @@ export default function FinancePage() {
 
     setRows(payRows);
     setLoading(false);
-  }, [selectedMonth, currentMonth]);
+  }, [selectedMonth, currentMonth, holidayDays]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setHolidayDays(0); }, [selectedMonth]);
 
   async function markPaid(row: PayRow) {
     if (row.bonusStatus === "pending") return;
@@ -162,6 +164,12 @@ export default function FinancePage() {
             >
               {monthOpts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+            <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-2 bg-white min-h-[40px]">
+              <span className="text-xs text-gray-500 font-khmer whitespace-nowrap">ថ្ងៃបុណ្យ</span>
+              <button onClick={() => setHolidayDays(h => Math.max(0, h - 1))} className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm flex items-center justify-center">−</button>
+              <span className="text-sm font-bold w-5 text-center text-gray-800">{holidayDays}</span>
+              <button onClick={() => setHolidayDays(h => Math.min(10, h + 1))} className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm flex items-center justify-center">+</button>
+            </div>
             <button
               onClick={() => {
                 const monthLabel = monthOpts.find(o => o.value === selectedMonth)?.label ?? selectedMonth;
@@ -231,9 +239,7 @@ export default function FinancePage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="text-left px-4 py-3 text-gray-600 font-semibold font-khmer">ឈ្មោះ</th>
-                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">ថ្ងៃ</th>
-                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">ច្បាប់ឈប់</th>
-                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">សរុប</th>
+                    <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">សរុបថ្ងៃ</th>
                     <th className="text-center px-2 py-3 text-gray-600 font-semibold font-khmer">ប្រាក់រង្វាន់</th>
                     <th className="text-center px-3 py-3 text-gray-600 font-semibold font-khmer">ស្ថានភាព</th>
                   </tr>
@@ -245,7 +251,7 @@ export default function FinancePage() {
                     return [
                       deptFilter === "all" && (
                         <tr key={`hdr-${dept}`} className="bg-[#EBF5EF]">
-                          <td colSpan={6} className="px-4 py-1.5 font-bold text-[#1E2D26] font-khmer text-xs">{dept}</td>
+                          <td colSpan={4} className="px-4 py-1.5 font-bold text-[#1E2D26] font-khmer text-xs">{dept}</td>
                         </tr>
                       ),
                       ...deptRows.map((row) => (
@@ -254,14 +260,13 @@ export default function FinancePage() {
                             <div className="font-khmer text-gray-900 font-medium">{row.employee.name}</div>
                             <div className="text-xs text-gray-400">{row.employee.id}</div>
                           </td>
-                          <td className="px-2 py-2.5 text-center text-gray-700 font-semibold">{row.presentDays}</td>
-                          <td className="px-2 py-2.5 text-center text-[#3D6B55] font-semibold">
-                            {row.leavedays > 0 ? `+${row.leavedays}` : "—"}
-                          </td>
                           <td className="px-2 py-2.5 text-center">
-                            <span className={`font-bold ${row.effectiveDays >= 26 ? "text-green-700" : row.effectiveDays >= 25 ? "text-yellow-600" : "text-red-600"}`}>
+                            <div className={`font-bold text-sm ${row.effectiveDays >= 26 ? "text-green-700" : row.effectiveDays >= 25 ? "text-yellow-600" : "text-red-600"}`}>
                               {row.effectiveDays}/26
-                            </span>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-0.5 font-khmer">
+                              {row.presentDays}ថ្ងៃ{row.leavedays > 0 ? ` +${row.leavedays}ច្បាប់` : ""}{holidayDays > 0 ? ` +${holidayDays}បុណ្យ` : ""}
+                            </div>
                           </td>
                           <td className="px-2 py-2.5 text-center">
                             <BonusBadge status={row.bonusStatus} bonus={row.bonus} />
