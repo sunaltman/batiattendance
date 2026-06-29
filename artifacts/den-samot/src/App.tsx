@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
-import { WifiOff } from "lucide-react";
+import { WifiOff, LayoutDashboard, Users, BarChart2, Mic, LogOut } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import { PinSetup } from "./pages/kiosk/PinSetup";
@@ -55,13 +55,14 @@ export default function App() {
     if (!authChecked) return <Spinner />;
     if (!session) return <LoginPage onLogin={(s) => setSession(s)} />;
 
-    const locationId = (session.user.user_metadata?.location_id ?? "") as string;
+    const locationId   = (session.user.user_metadata?.location_id ?? "") as string;
+    const locationName = (session.user.user_metadata?.location_name ?? locationId) as string;
 
     return (
       <>
         <OfflineBanner />
         <Toaster position="top-center" richColors toastOptions={{ duration: 3500 }} />
-        <AdminShell route={adminRoute} onRoute={setAdminRoute} onLogout={() => supabase.auth.signOut()}>
+        <AdminShell route={adminRoute} onRoute={setAdminRoute} onLogout={() => supabase.auth.signOut()} locationName={locationName}>
           {adminRoute === "dashboard"    && <Dashboard locationId={locationId} />}
           {adminRoute === "employees"    && <EmployeesPage locationId={locationId} />}
           {adminRoute === "reports"      && <ReportsPage locationId={locationId} />}
@@ -85,63 +86,73 @@ function Spinner() {
   );
 }
 
+const NAV_ITEMS: { id: AdminRoute; label: string; Icon: React.FC<{ size?: number }> }[] = [
+  { id: "dashboard",    label: "ផ្ទាំង",    Icon: LayoutDashboard },
+  { id: "employees",    label: "បុគ្គលិក",  Icon: Users },
+  { id: "reports",      label: "របាយការណ៍", Icon: BarChart2 },
+  { id: "late-reasons", label: "យឺត/បន្លំ", Icon: Mic },
+];
+
 function AdminShell({
-  children, route, onRoute, onLogout,
+  children, route, onRoute, onLogout, locationName,
 }: {
   children: React.ReactNode;
   route: AdminRoute;
   onRoute: (r: AdminRoute) => void;
   onLogout: () => void;
+  locationName?: string;
 }) {
-  const navItems: { id: AdminRoute; label: string; emoji: string }[] = [
-    { id: "dashboard",    label: "ផ្ទាំងគ្រប់គ្រង", emoji: "📊" },
-    { id: "employees",    label: "បុគ្គលិក",          emoji: "👥" },
-    { id: "reports",      label: "របាយការណ៍",         emoji: "📋" },
-    { id: "late-reasons", label: "មូលហេតុយឺត",       emoji: "🎙" },
-  ];
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <header
-        className="text-white px-6 py-3 flex items-center justify-between shadow-lg"
-        style={{
-          background: "linear-gradient(135deg, #040B3D 0%, #0C1870 100%)",
-          borderBottom: "1px solid rgba(26,50,212,0.3)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full border-2 border-ds-red/60 p-0.5" style={{ boxShadow: "0 0 10px rgba(212,32,39,0.3)" }}>
-            <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Thin white top bar — logo + location + logout (same feel as Bati) */}
+      <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between print:hidden">
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="Den Samot" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+          <div>
+            <p className="font-bold text-sm text-gray-900 leading-none" style={{ fontFamily: "Georgia, serif" }}>Den Samot</p>
+            {locationName && <p className="font-khmer text-xs text-gray-400 leading-tight mt-0.5">{locationName}</p>}
           </div>
-          <span className="font-bold text-base tracking-wide" style={{ fontFamily: "Georgia, serif" }}>Den Samot</span>
         </div>
-        <nav className="flex gap-1">
-          {navItems.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => onRoute(n.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-khmer transition-all ${
-                route === n.id
-                  ? "text-white"
-                  : "text-white/50 hover:text-white hover:bg-white/8"
-              }`}
-              style={route === n.id ? {
-                background: "linear-gradient(135deg, rgba(26,50,212,0.6), rgba(212,32,39,0.3))",
-                border: "1px solid rgba(26,50,212,0.4)",
-              } : {}}
-            >
-              {n.emoji} {n.label}
-            </button>
-          ))}
-        </nav>
         <button
           onClick={onLogout}
-          className="text-white/30 hover:text-white/70 text-xs font-khmer transition-colors"
+          className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 text-xs transition-colors min-h-[44px] px-2"
         >
-          ចាកចេញ
+          <LogOut size={14} />
+          <span className="font-khmer">ចាកចេញ</span>
         </button>
       </header>
-      <main className="flex-1 bg-background p-6">{children}</main>
+
+      {/* Page content — padded for bottom nav + iOS home indicator */}
+      <main
+        className="p-4 md:p-6"
+        style={{ paddingBottom: "calc(56px + env(safe-area-inset-bottom, 4px))" }}
+      >
+        {children}
+      </main>
+
+      {/* Fixed bottom nav — same structure as Bati */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 print:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 4px)" }}
+      >
+        <div className="flex max-w-2xl mx-auto">
+          {NAV_ITEMS.map(({ id, label, Icon }) => {
+            const active = route === id;
+            return (
+              <button
+                key={id}
+                onClick={() => onRoute(id)}
+                className={`flex-1 flex flex-col items-center justify-center py-2 min-h-[52px] gap-0.5 text-xs transition-colors font-khmer ${
+                  active ? "text-brand-dark bg-brand-xlight" : "text-gray-500"
+                }`}
+              >
+                <Icon size={18} />
+                <span className="leading-tight">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
