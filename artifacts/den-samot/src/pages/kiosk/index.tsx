@@ -34,6 +34,9 @@ const LOCATION_ID  = localStorage.getItem("ds_location_id")  ?? "";
 const LOCATION_NAME = localStorage.getItem("ds_location_name") ?? "";
 const TG_CHAT_ID   = import.meta.env.VITE_DS_TELEGRAM_CHAT_ID as string | undefined;
 
+// Set to true once face photos are enrolled and @vladmandic/human is ready
+const FACE_VERIFY_ENABLED = false;
+
 let humanInstance: Human | null = null;
 
 export function KioskPage() {
@@ -94,8 +97,12 @@ export function KioskPage() {
 
   // ── Scan loop ────────────────────────────────────────────────────────────
   function startLoop() {
-    if (!humanInstance) { humanInstance = createHuman(); }
-    humanInstance.load().then(() => { rafRef.current = requestAnimationFrame(loop); });
+    if (FACE_VERIFY_ENABLED) {
+      if (!humanInstance) { humanInstance = createHuman(); }
+      humanInstance.load().then(() => { rafRef.current = requestAnimationFrame(loop); });
+    } else {
+      rafRef.current = requestAnimationFrame(loop);
+    }
   }
 
   const loop = useCallback(async () => {
@@ -148,19 +155,21 @@ export function KioskPage() {
       .single();
     if (empErr || !emp) { showError("មិនស្គាល់អ្នកនេះ — ID: " + empId); return; }
 
-    // Face verify
-    const faceUrl = supabase.storage.from(FACE_BUCKET).getPublicUrl(faceFilename(empId)).data.publicUrl;
-    const faceCanvas = await loadImageToCanvas(faceUrl);
-    if (!faceCanvas) { showError("រូបភាពមុខមិនទាន់ស្InputStream"); return; }
+    // Face verify (disabled until FACE_VERIFY_ENABLED = true)
+    let matchPct = 100;
+    if (FACE_VERIFY_ENABLED) {
+      const faceUrl = supabase.storage.from(FACE_BUCKET).getPublicUrl(faceFilename(empId)).data.publicUrl;
+      const faceCanvas = await loadImageToCanvas(faceUrl);
+      if (!faceCanvas) { showError("រូបភាពមុខមិនទាន់ស្InputStream"); return; }
 
-    const storedEmb  = await extractEmbedding(humanInstance!, faceCanvas);
-    const liveEmb    = await extractEmbedding(humanInstance!, frameCanvas);
-    if (!storedEmb || !liveEmb) { showError("ត្រួតពិនិត្យមុខបានបរាជ័យ — ព្យាយាមម្ដងទៀត"); return; }
+      const storedEmb = await extractEmbedding(humanInstance!, faceCanvas);
+      const liveEmb   = await extractEmbedding(humanInstance!, frameCanvas);
+      if (!storedEmb || !liveEmb) { showError("ត្រួតពិនិត្យមុខបានបរាជ័យ — ព្យាយាមម្ដងទៀត"); return; }
 
-    const sim = humanInstance!.match.similarity(storedEmb, liveEmb);
-    if (sim < FACE_MATCH_THRESHOLD) { showError("មុខមិនត្រូវ — ព្យាយាមម្ដងទៀត"); return; }
-
-    const matchPct = Math.round(sim * 100);
+      const sim = humanInstance!.match.similarity(storedEmb, liveEmb);
+      if (sim < FACE_MATCH_THRESHOLD) { showError("មុខមិនត្រូវ — ព្យាយាមម្ដងទៀត"); return; }
+      matchPct = Math.round(sim * 100);
+    }
     const scanType = getScanType();
     const today    = getTodayDate();
 
