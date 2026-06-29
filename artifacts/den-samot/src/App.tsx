@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Component } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 import { Toaster } from "sonner";
 import { WifiOff, LayoutDashboard, Users, BarChart2, Mic, LogOut } from "lucide-react";
 import { supabase } from "./lib/supabase";
@@ -94,6 +95,25 @@ function Spinner() {
       <div className="w-16 h-16 rounded-full border-4 border-brand border-t-transparent animate-spin" />
     </div>
   );
+}
+
+export class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(e: Error) { return { error: e }; }
+  componentDidCatch(e: Error, info: ErrorInfo) { console.error("App crash:", e, info); }
+  render() {
+    if (this.state.error) {
+      const msg = (this.state.error as Error).message;
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-8 bg-white">
+          <p className="text-red-600 font-bold text-lg">កំហុស / Error</p>
+          <pre className="text-xs bg-red-50 border border-red-200 rounded p-4 max-w-xl w-full whitespace-pre-wrap break-all">{msg}</pre>
+          <button onClick={() => this.setState({ error: null })} className="text-sm text-brand underline">ព្យាយាមម្ដងទៀត / Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 const NAV_ITEMS: { id: AdminRoute; label: string; Icon: React.FC<{ size?: number }> }[] = [
