@@ -14,10 +14,13 @@ export function Dashboard({ locationId }: { locationId: string }) {
   useEffect(() => {
     async function load() {
       const today = getTodayDate();
-      const [{ data: sc }, { data: emps }] = await Promise.all([
-        supabase.from(DS.SCANS).select(`*, ${DS.EMPLOYEES}(name)`).eq("location_id", locationId).eq("date", today),
-        supabase.from(DS.EMPLOYEES).select("id, name").eq("location_id", locationId).eq("is_active", true),
-      ]);
+      // If no locationId set on the admin account, show all locations
+      let scansQ = supabase.from(DS.SCANS).select(`*, ${DS.EMPLOYEES}(name)`).eq("date", today);
+      let empsQ  = supabase.from(DS.EMPLOYEES).select("id, name").eq("is_active", true);
+      if (locationId) { scansQ = scansQ.eq("location_id", locationId); empsQ = empsQ.eq("location_id", locationId); }
+      const [{ data: sc, error: e1 }, { data: emps, error: e2 }] = await Promise.all([scansQ, empsQ]);
+      if (e1) console.error("scans:", e1.message);
+      if (e2) console.error("employees:", e2.message);
       setScans((sc ?? []) as ScanWithName[]);
       setEmployees(emps ?? []);
       setLoading(false);
