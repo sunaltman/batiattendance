@@ -31,7 +31,15 @@ function OfflineBanner() {
 }
 
 function isAdminPath() {
-  return window.location.pathname.startsWith("/admin");
+  if (window.location.pathname.startsWith("/admin")) {
+    localStorage.setItem("ds_pwa_mode", "admin");
+    return true;
+  }
+  // When launched as PWA from home screen, path is always "/" —
+  // use the saved mode so the admin icon opens admin login, not the kiosk.
+  const standalone = window.matchMedia("(display-mode: standalone)").matches
+    || (navigator as unknown as { standalone?: boolean }).standalone === true;
+  return standalone && localStorage.getItem("ds_pwa_mode") === "admin";
 }
 
 export default function App() {
