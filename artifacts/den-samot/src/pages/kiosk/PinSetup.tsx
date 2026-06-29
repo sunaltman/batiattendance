@@ -41,18 +41,17 @@ export function PinSetup({ onSetup }: Props) {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-8 relative overflow-hidden"
-      style={{ background: "linear-gradient(145deg, #040B3D 0%, #0C1870 50%, #060D4A 100%)" }}
+      style={{ background: "linear-gradient(145deg, #0C1B2E 0%, #152840 50%, #0E1F35 100%)" }}
     >
       {/* Ambient glow orbs */}
-      <div className="absolute top-1/4 -left-40 w-96 h-96 rounded-full bg-brand/15 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full bg-ds-red/10 blur-3xl pointer-events-none" />
-      <div className="absolute top-3/4 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-ds-gold/5 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 -left-40 w-96 h-96 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full bg-brand/4 blur-3xl pointer-events-none" />
 
       {/* Logo with animated rings */}
       <div className="relative mb-8 flex items-center justify-center">
-        <div className="absolute w-44 h-44 rounded-full border border-ds-red/20 animate-ping" style={{ animationDuration: "3.5s" }} />
-        <div className="absolute w-40 h-40 rounded-full border border-brand/25 animate-ping" style={{ animationDuration: "2.8s", animationDelay: "0.8s" }} />
-        <div className="relative w-32 h-32 rounded-full border-4 border-ds-red p-1.5 bg-ds-dark/60 backdrop-blur-sm animate-glow-pulse">
+        <div className="absolute w-44 h-44 rounded-full border border-brand/12 animate-ping" style={{ animationDuration: "3.5s" }} />
+        <div className="absolute w-40 h-40 rounded-full border border-brand/8 animate-ping" style={{ animationDuration: "2.8s", animationDelay: "0.8s" }} />
+        <div className="relative w-32 h-32 rounded-full border-2 border-brand/40 p-1.5 bg-ds-dark/60 backdrop-blur-sm animate-glow-pulse">
           <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
         </div>
       </div>
@@ -89,7 +88,7 @@ export function PinSetup({ onSetup }: Props) {
                   ? "w-5 h-5 bg-brand border-brand shadow-lg"
                   : "w-4 h-4 border-white/30 bg-transparent"
               }`}
-                style={pin.length > i ? { boxShadow: "0 0 12px rgba(26,50,212,0.8)" } : {}}
+                style={pin.length > i ? { boxShadow: "0 0 8px rgba(75,108,183,0.5)" } : {}}
               />
             </div>
           ))}

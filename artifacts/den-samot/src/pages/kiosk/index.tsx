@@ -306,14 +306,14 @@ export function KioskPage() {
   const emp = confirm?.employee;
 
   const bgStyle: React.CSSProperties = {
-    background: "linear-gradient(145deg, #040B3D 0%, #0C1870 50%, #060D4A 100%)",
+    background: "linear-gradient(145deg, #0C1B2E 0%, #152840 50%, #0E1F35 100%)",
   };
 
   return (
     <div className="min-h-screen text-white flex flex-col items-center justify-center overflow-hidden select-none relative" style={bgStyle}>
       {/* Ambient glow orbs — always present */}
-      <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-brand/10 blur-3xl pointer-events-none -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-ds-red/8 blur-3xl pointer-events-none translate-x-1/2 translate-y-1/2" />
+      <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-brand/5 blur-3xl pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-brand/4 blur-3xl pointer-events-none translate-x-1/2 translate-y-1/2" />
 
       {/* Always-mounted canvas */}
       <canvas ref={canvasRef} className="hidden" />
@@ -326,12 +326,12 @@ export function KioskPage() {
         >
           {/* Logo with multi-ring pulse */}
           <div className="relative flex items-center justify-center">
-            <div className="absolute w-72 h-72 rounded-full border border-ds-red/15 animate-ping" style={{ animationDuration: "4s" }} />
-            <div className="absolute w-60 h-60 rounded-full border border-brand/20 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.6s" }} />
-            <div className="absolute w-52 h-52 rounded-full border border-ds-red/25 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "1.2s" }} />
+            <div className="absolute w-72 h-72 rounded-full border border-brand/8 animate-ping" style={{ animationDuration: "4s" }} />
+            <div className="absolute w-60 h-60 rounded-full border border-brand/6 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.6s" }} />
+            <div className="absolute w-52 h-52 rounded-full border border-brand/10 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "1.2s" }} />
             <div
-              className="relative w-44 h-44 rounded-full border-4 border-ds-red p-2 animate-glow-pulse"
-              style={{ background: "rgba(6,13,74,0.7)", backdropFilter: "blur(8px)" }}
+              className="relative w-44 h-44 rounded-full border-2 border-brand/40 p-2 animate-glow-pulse"
+              style={{ background: "rgba(12,27,46,0.7)", backdropFilter: "blur(8px)" }}
             >
               <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
             </div>
@@ -347,8 +347,8 @@ export function KioskPage() {
 
           {/* Location badge */}
           <div
-            className="px-6 py-2 rounded-full font-khmer text-sm text-ds-red/90"
-            style={{ background: "rgba(212,32,39,0.12)", border: "1px solid rgba(212,32,39,0.3)" }}
+            className="px-6 py-2 rounded-full font-khmer text-sm text-brand-light/70"
+            style={{ background: "rgba(75,108,183,0.12)", border: "1px solid rgba(75,108,183,0.25)" }}
           >
             {LOCATION_NAME}
           </div>
@@ -362,7 +362,7 @@ export function KioskPage() {
           ដាក់ប័ណ្ណ QR នៅចន្លោះស៊ុម
         </p>
         <div className="relative w-72 h-72 rounded-2xl overflow-hidden bg-black"
-          style={{ border: "2px solid rgba(26,50,212,0.6)", boxShadow: "0 0 30px rgba(26,50,212,0.2)" }}>
+          style={{ border: "1px solid rgba(75,108,183,0.4)", boxShadow: "0 0 20px rgba(75,108,183,0.12)" }}>
           <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
           {/* Corner markers */}
           <div className="absolute inset-0 pointer-events-none">

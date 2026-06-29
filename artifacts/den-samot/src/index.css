@@ -34,8 +34,8 @@
 }
 
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px 4px rgba(212,32,39,0.3); }
-  50%       { box-shadow: 0 0 40px 8px rgba(212,32,39,0.6); }
+  0%, 100% { box-shadow: 0 0 12px 2px rgba(75,108,183,0.18); }
+  50%       { box-shadow: 0 0 22px 4px rgba(75,108,183,0.28); }
 }
 
 @theme inline {
@@ -60,15 +60,15 @@
   --font-sans:   var(--app-font-sans);
   --font-khmer:  var(--app-font-khmer);
 
-  /* Den Samot brand palette — royal blue + red from logo */
-  --color-brand:        #1A32D4;
-  --color-brand-dark:   #1224A8;
-  --color-brand-darker: #0B1880;
-  --color-brand-light:  #C8D4FF;
-  --color-brand-xlight: #EEF1FF;
-  --color-ds-dark:      #070F5C;
-  --color-ds-red:       #D42027;
-  --color-ds-gold:      #FFD700;
+  /* Den Samot brand palette — calm cool blue */
+  --color-brand:        #4B6CB7;
+  --color-brand-dark:   #2E4F8A;
+  --color-brand-darker: #1E3A6E;
+  --color-brand-light:  #C5D5F0;
+  --color-brand-xlight: #EBF0FB;
+  --color-ds-dark:      #0F1D30;
+  --color-ds-red:       #A33030;
+  --color-ds-gold:      #C99B30;
 }
 
 :root {

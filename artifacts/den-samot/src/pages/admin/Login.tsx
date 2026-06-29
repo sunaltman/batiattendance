@@ -20,20 +20,20 @@ export function LoginPage({ onLogin }: { onLogin: (s: Session) => void }) {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6 relative overflow-hidden"
-      style={{ background: "linear-gradient(145deg, #040B3D 0%, #0C1870 50%, #060D4A 100%)" }}
+      style={{ background: "linear-gradient(145deg, #0C1B2E 0%, #152840 50%, #0E1F35 100%)" }}
     >
       {/* Ambient orbs */}
-      <div className="absolute top-1/3 -left-40 w-80 h-80 rounded-full bg-brand/15 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/3 -right-40 w-80 h-80 rounded-full bg-ds-red/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 -left-40 w-80 h-80 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/3 -right-40 w-80 h-80 rounded-full bg-brand/4 blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-sm animate-fade-in-up">
         {/* Logo header */}
         <div className="text-center mb-8">
           <div className="relative inline-flex items-center justify-center mb-4">
-            <div className="absolute w-28 h-28 rounded-full bg-ds-red/15 animate-ping" style={{ animationDuration: "3s" }} />
+            <div className="absolute w-28 h-28 rounded-full bg-brand/8 animate-ping" style={{ animationDuration: "3s" }} />
             <div
-              className="relative w-20 h-20 rounded-full border-3 border-ds-red p-1 animate-glow-pulse"
-              style={{ background: "rgba(6,13,74,0.7)", backdropFilter: "blur(8px)" }}
+              className="relative w-20 h-20 rounded-full border-2 border-brand/40 p-1 animate-glow-pulse"
+              style={{ background: "rgba(12,27,46,0.7)", backdropFilter: "blur(8px)" }}
             >
               <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
             </div>
@@ -64,7 +64,7 @@ export function LoginPage({ onLogin }: { onLogin: (s: Session) => void }) {
                   background: "rgba(255,255,255,0.07)",
                   border: "1px solid rgba(255,255,255,0.12)",
                 }}
-                onFocus={(e) => (e.currentTarget.style.border = "1px solid rgba(26,50,212,0.6)")}
+                onFocus={(e) => (e.currentTarget.style.border = "1px solid rgba(75,108,183,0.5)")}
                 onBlur={(e) => (e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)")}
               />
             </div>
@@ -78,7 +78,7 @@ export function LoginPage({ onLogin }: { onLogin: (s: Session) => void }) {
                   background: "rgba(255,255,255,0.07)",
                   border: "1px solid rgba(255,255,255,0.12)",
                 }}
-                onFocus={(e) => (e.currentTarget.style.border = "1px solid rgba(26,50,212,0.6)")}
+                onFocus={(e) => (e.currentTarget.style.border = "1px solid rgba(75,108,183,0.5)")}
                 onBlur={(e) => (e.currentTarget.style.border = "1px solid rgba(255,255,255,0.12)")}
               />
             </div>
@@ -93,8 +93,8 @@ export function LoginPage({ onLogin }: { onLogin: (s: Session) => void }) {
               type="submit" disabled={loading}
               className="mt-2 py-3.5 rounded-xl font-khmer font-semibold text-white transition-all active:scale-95 disabled:opacity-50"
               style={{
-                background: "linear-gradient(135deg, #1A32D4, #D42027)",
-                boxShadow: "0 4px 20px rgba(26,50,212,0.4)",
+                background: "linear-gradient(135deg, #4B6CB7, #2E4F8A)",
+                boxShadow: "0 4px 16px rgba(75,108,183,0.35)",
               }}
             >
               {loading ? "…" : "ចូល"}
