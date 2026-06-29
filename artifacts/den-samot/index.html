@@ -7,7 +7,9 @@
     <link rel="manifest" href="/manifest.json" id="ds-manifest" />
     <meta name="theme-color" content="#0F1D30" />
     <script>
-      if (window.location.pathname.startsWith('/admin')) {
+      if ('%VITE_ADMIN_ONLY%' === 'true') {
+        document.getElementById('ds-manifest').href = '/admin-root-manifest.json';
+      } else if (window.location.pathname.startsWith('/admin')) {
         document.getElementById('ds-manifest').href = '/admin-manifest.json';
       }
     </script>

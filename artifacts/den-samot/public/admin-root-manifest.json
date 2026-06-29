@@ -1,0 +1,13 @@
+{
+  "name": "Den Samot Admin",
+  "short_name": "DS Admin",
+  "description": "Den Samot attendance admin panel",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0C1B2E",
+  "theme_color": "#0F1D30",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/logo.png", "sizes": "any", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

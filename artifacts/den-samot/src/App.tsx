@@ -13,6 +13,9 @@ import { LateReasonsPage } from "./pages/admin/LateReasons";
 
 type AdminRoute = "dashboard" | "employees" | "reports" | "late-reasons";
 
+// When deployed as the admin-only PWA (separate Vercel project), always show admin.
+const ADMIN_ONLY = import.meta.env.VITE_ADMIN_ONLY === "true";
+
 function OfflineBanner() {
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -31,12 +34,11 @@ function OfflineBanner() {
 }
 
 function isAdminPath() {
+  if (ADMIN_ONLY) return true;
   if (window.location.pathname.startsWith("/admin")) {
     localStorage.setItem("ds_pwa_mode", "admin");
     return true;
   }
-  // When launched as PWA from home screen, path is always "/" —
-  // use the saved mode so the admin icon opens admin login, not the kiosk.
   const standalone = window.matchMedia("(display-mode: standalone)").matches
     || (navigator as unknown as { standalone?: boolean }).standalone === true;
   return standalone && localStorage.getItem("ds_pwa_mode") === "admin";
@@ -88,7 +90,7 @@ export default function App() {
 function Spinner() {
   return (
     <div className="min-h-screen flex items-center justify-center"
-      style={{ background: "linear-gradient(145deg, #040B3D 0%, #0C1870 50%, #060D4A 100%)" }}>
+      style={{ background: "linear-gradient(145deg, #0C1B2E 0%, #152840 50%, #0E1F35 100%)" }}>
       <div className="w-16 h-16 rounded-full border-4 border-brand border-t-transparent animate-spin" />
     </div>
   );
