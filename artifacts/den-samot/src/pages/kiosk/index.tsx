@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Check, ArrowRight, Clock, AlertCircle, AlertTriangle, X } from "lucide-react";
 import jsQR from "jsqr";
-import { Human } from "@vladmandic/human";
-import { createHuman, extractEmbedding, loadImageToCanvas, FACE_MATCH_THRESHOLD } from "../../lib/face";
+// Face AI imports — restore when FACE_VERIFY_ENABLED = true
+// import { Human } from "@vladmandic/human";
+// import { createHuman, extractEmbedding, loadImageToCanvas, FACE_MATCH_THRESHOLD } from "../../lib/face";
 import { getScanType, checkLate, SCAN_TYPE_LABEL_KH } from "../../lib/scan-logic";
-import { supabase, getTodayDate, faceFilename, FACE_BUCKET, DS } from "../../lib/supabase";
+import { supabase, getTodayDate, DS } from "../../lib/supabase";
+// import { faceFilename, FACE_BUCKET } from "../../lib/supabase"; // restore with face AI
 import type { Employee, ScanType } from "../../lib/supabase";
 import { composeReceipt, sendReceiptPhoto } from "../../lib/telegram";
 import { VoiceRecorder } from "../../components/VoiceRecorder";
@@ -37,7 +39,7 @@ const TG_CHAT_ID   = import.meta.env.VITE_DS_TELEGRAM_CHAT_ID as string | undefi
 // Set to true once face photos are enrolled and @vladmandic/human is ready
 const FACE_VERIFY_ENABLED = false;
 
-let humanInstance: Human | null = null;
+// let humanInstance: Human | null = null;
 
 export function KioskPage() {
   const [stage, setStage]       = useState<Stage>("idle");
@@ -98,8 +100,8 @@ export function KioskPage() {
   // ── Scan loop ────────────────────────────────────────────────────────────
   function startLoop() {
     if (FACE_VERIFY_ENABLED) {
-      if (!humanInstance) { humanInstance = createHuman(); }
-      humanInstance.load().then(() => { rafRef.current = requestAnimationFrame(loop); });
+      // if (!humanInstance) { humanInstance = createHuman(); }
+      // humanInstance.load().then(() => { rafRef.current = requestAnimationFrame(loop); });
     } else {
       rafRef.current = requestAnimationFrame(loop);
     }
@@ -155,21 +157,19 @@ export function KioskPage() {
       .single();
     if (empErr || !emp) { showError("មិនស្គាល់អ្នកនេះ — ID: " + empId); return; }
 
-    // Face verify (disabled until FACE_VERIFY_ENABLED = true)
-    let matchPct = 100;
-    if (FACE_VERIFY_ENABLED) {
+    // Face verify — restore when FACE_VERIFY_ENABLED = true
+    const matchPct = 100;
+    /* if (FACE_VERIFY_ENABLED) {
       const faceUrl = supabase.storage.from(FACE_BUCKET).getPublicUrl(faceFilename(empId)).data.publicUrl;
       const faceCanvas = await loadImageToCanvas(faceUrl);
       if (!faceCanvas) { showError("រូបភាពមុខមិនទាន់ស្InputStream"); return; }
-
       const storedEmb = await extractEmbedding(humanInstance!, faceCanvas);
       const liveEmb   = await extractEmbedding(humanInstance!, frameCanvas);
       if (!storedEmb || !liveEmb) { showError("ត្រួតពិនិត្យមុខបានបរាជ័យ — ព្យាយាមម្ដងទៀត"); return; }
-
       const sim = humanInstance!.match.similarity(storedEmb, liveEmb);
       if (sim < FACE_MATCH_THRESHOLD) { showError("មុខមិនត្រូវ — ព្យាយាមម្ដងទៀត"); return; }
       matchPct = Math.round(sim * 100);
-    }
+    } */
     const scanType = getScanType();
     const today    = getTodayDate();
 
