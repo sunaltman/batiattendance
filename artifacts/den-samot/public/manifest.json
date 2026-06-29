@@ -1,0 +1,14 @@
+{
+  "name": "Den Samot Attendance",
+  "short_name": "Den Samot",
+  "description": "Seafood chain attendance system",
+  "start_url": "/kiosk",
+  "display": "standalone",
+  "background_color": "#0A2F35",
+  "theme_color": "#1A7B8A",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
