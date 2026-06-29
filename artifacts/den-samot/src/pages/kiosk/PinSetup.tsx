@@ -39,10 +39,7 @@ export function PinSetup({ onSetup }: Props) {
   return (
     <div className="min-h-screen bg-ds-dark flex flex-col items-center justify-center px-8">
       <div className="mb-10 text-center">
-        <div className="text-5xl mb-4">🦐</div>
-        <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: "Georgia, serif" }}>
-          Den Samot
-        </h1>
+        <img src="/logo.png" alt="Den Samot" className="w-28 h-28 mx-auto mb-4 rounded-full object-cover" />
         <p className="font-khmer text-brand-light text-lg">បញ្ចូល PIN ទីតាំង</p>
       </div>
 

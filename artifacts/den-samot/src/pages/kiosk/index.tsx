@@ -297,10 +297,10 @@ export function KioskPage() {
           onClick={beginScan}
           className="flex flex-col items-center gap-6 p-12 rounded-3xl active:scale-95 transition-transform"
         >
-          <div className="relative">
-            <div className="w-40 h-40 rounded-full bg-brand/20 absolute inset-0 animate-pulse-ring" />
-            <div className="w-40 h-40 rounded-full bg-brand flex items-center justify-center text-7xl relative">
-              📷
+          <div className="relative flex items-center justify-center">
+            <div className="w-48 h-48 rounded-full border-4 border-brand/30 absolute animate-pulse-ring" />
+            <div className="w-44 h-44 rounded-full border-4 border-ds-red p-1 relative">
+              <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
             </div>
           </div>
           <div className="text-center">

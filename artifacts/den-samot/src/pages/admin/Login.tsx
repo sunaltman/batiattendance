@@ -21,7 +21,7 @@ export function LoginPage({ onLogin }: { onLogin: (s: Session) => void }) {
     <div className="min-h-screen bg-ds-dark flex items-center justify-center px-6">
       <div className="bg-white/5 border border-white/10 rounded-3xl p-10 w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3">🦐</div>
+          <img src="/logo.png" alt="Den Samot" className="w-20 h-20 mx-auto mb-3 rounded-full object-cover" />
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "Georgia, serif" }}>Den Samot Admin</h1>
           <p className="font-khmer text-brand-light mt-1 text-sm">ចូលគ្រប់គ្រង</p>
         </div>

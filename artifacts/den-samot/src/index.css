@@ -12,6 +12,8 @@
 }
 
 @theme inline {
+  --animate-pulse-ring: pulse-ring 1.5s ease-out infinite;
+  --animate-scan:       scan 2s linear infinite;
   --color-background:        hsl(var(--background));
   --color-foreground:        hsl(var(--foreground));
   --color-border:            hsl(var(--border));
@@ -27,27 +29,28 @@
   --font-sans:   var(--app-font-sans);
   --font-khmer:  var(--app-font-khmer);
 
-  /* Den Samot ocean-teal palette */
-  --color-brand:        #2BA0B4;
-  --color-brand-dark:   #1A7B8A;
-  --color-brand-darker: #0D4550;
-  --color-brand-light:  #D8F0F4;
-  --color-brand-xlight: #EBF8FB;
-  --color-ds-dark:      #0A2F35;
-  --color-ds-gold:      #F2A62D;
+  /* Den Samot brand palette — royal blue + red from logo */
+  --color-brand:        #1A32D4;
+  --color-brand-dark:   #1224A8;
+  --color-brand-darker: #0B1880;
+  --color-brand-light:  #C8D4FF;
+  --color-brand-xlight: #EEF1FF;
+  --color-ds-dark:      #070F5C;
+  --color-ds-red:       #D42027;
+  --color-ds-gold:      #FFD700;
 }
 
 :root {
-  --background: 188 35% 97%;
-  --foreground: 193 40% 10%;
-  --border:     188 20% 85%;
-  --ring:       188 40% 45%;
+  --background: 225 35% 97%;
+  --foreground: 225 40% 10%;
+  --border:     225 20% 85%;
+  --ring:       225 60% 50%;
   --card:       0 0% 100%;
-  --card-foreground: 193 40% 10%;
-  --primary:    188 50% 40%;
+  --card-foreground: 225 40% 10%;
+  --primary:    225 70% 47%;
   --primary-foreground: 0 0% 100%;
-  --muted:      188 15% 93%;
-  --muted-foreground: 188 10% 45%;
+  --muted:      225 15% 93%;
+  --muted-foreground: 225 10% 45%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
