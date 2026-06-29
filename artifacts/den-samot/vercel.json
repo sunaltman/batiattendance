@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd ../.. && pnpm --filter @workspace/den-samot run build",
+  "buildCommand": "cd ../.. && NODE_OPTIONS='--max-old-space-size=4096' pnpm --filter @workspace/den-samot run build",
   "outputDirectory": "dist/public",
   "installCommand": "cd ../.. && pnpm install",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
