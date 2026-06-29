@@ -55,7 +55,7 @@ export function LoginPage({ onLogin }: { onLogin: (s: Session) => void }) {
         >
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label className="font-khmer text-white/40 text-xs tracking-widest uppercase pl-1">អ៊ីមែល</label>
+              <label className="font-khmer text-white/50 text-xs pl-1">អ៊ីមែល</label>
               <input
                 type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com" required
@@ -69,7 +69,7 @@ export function LoginPage({ onLogin }: { onLogin: (s: Session) => void }) {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="font-khmer text-white/40 text-xs tracking-widest uppercase pl-1">ពាក្យសម្ងាត់</label>
+              <label className="font-khmer text-white/50 text-xs pl-1">ពាក្យសម្ងាត់</label>
               <input
                 type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••" required

@@ -61,7 +61,7 @@ export function PinSetup({ onSetup }: Props) {
         <h1 className="text-white text-2xl font-bold tracking-widest uppercase" style={{ fontFamily: "Georgia, serif" }}>
           Den Samot
         </h1>
-        <p className="font-khmer text-brand-light/50 text-sm mt-1 tracking-wide">ប្រព័ន្ធគ្រប់គ្រងវត្តមាន</p>
+        <p className="font-khmer text-brand-light/70 text-sm mt-1">ប្រព័ន្ធគ្រប់គ្រងវត្តមាន</p>
       </div>
 
       {/* Glass PIN card */}
@@ -73,7 +73,7 @@ export function PinSetup({ onSetup }: Props) {
           border: "1px solid rgba(255,255,255,0.10)",
         }}
       >
-        <p className="font-khmer text-brand-light/50 text-center text-xs mb-6 tracking-widest uppercase">
+        <p className="font-khmer text-brand-light/70 text-center text-sm mb-6">
           PIN ទីតាំង
         </p>
 
