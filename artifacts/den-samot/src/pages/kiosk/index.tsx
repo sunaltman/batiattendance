@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { Check, ArrowRight, Clock, AlertCircle, AlertTriangle, X } from "lucide-react";
 import jsQR from "jsqr";
 import { Human } from "@vladmandic/human";
 import { createHuman, extractEmbedding, loadImageToCanvas, FACE_MATCH_THRESHOLD } from "../../lib/face";
@@ -385,8 +386,8 @@ export function KioskPage() {
       {/* ── LATE PROMPT ──────────────────────────────────────────────────── */}
       {stage === "late_prompt" && emp && (
         <div className="flex flex-col items-center gap-5 px-8 max-w-sm text-center animate-fade-in-up">
-          <div className="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center text-4xl">
-            ⏰
+          <div className="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center">
+            <Clock size={40} className="text-amber-400" />
           </div>
           <p className="font-khmer text-2xl font-bold text-amber-400">
             {emp.name}
@@ -402,8 +403,8 @@ export function KioskPage() {
       {/* ── CHEAT PROMPT ─────────────────────────────────────────────────── */}
       {stage === "cheat_prompt" && emp && (
         <div className="flex flex-col items-center gap-5 px-8 max-w-sm text-center animate-fade-in-up">
-          <div className="w-20 h-20 rounded-full bg-ds-red/20 border-2 border-ds-red/50 flex items-center justify-center text-4xl">
-            🚨
+          <div className="w-20 h-20 rounded-full bg-ds-red/20 border-2 border-ds-red/50 flex items-center justify-center">
+            <AlertCircle size={40} className="text-ds-red" />
           </div>
           <p className="font-khmer text-2xl font-bold text-white">{emp.name}</p>
           <p className="font-khmer text-xl text-white/90">
@@ -439,14 +440,18 @@ export function KioskPage() {
                 : "0 0 40px rgba(26,50,212,0.5)",
             }}
           >
-            {confirm.scanType.endsWith("_in") ? "✓" : "→"}
+            {confirm.scanType.endsWith("_in")
+              ? <Check size={56} strokeWidth={3} className="text-white" />
+              : <ArrowRight size={56} strokeWidth={3} className="text-white" />}
           </div>
 
           <div className="space-y-2">
             <p className="text-3xl font-bold text-white">{emp.name}</p>
             <p className="font-khmer text-xl text-brand-light">{SCAN_TYPE_LABEL_KH[confirm.scanType]}</p>
             {confirm.isLate && (
-              <p className="font-khmer text-amber-400 text-sm">⚠️ យឺត {confirm.lateMinutes} នាទី</p>
+              <p className="font-khmer text-amber-400 text-sm flex items-center justify-center gap-1">
+                <AlertTriangle size={14} /> យឺត {confirm.lateMinutes} នាទី
+              </p>
             )}
           </div>
 
@@ -464,7 +469,7 @@ export function KioskPage() {
               boxShadow: "0 0 40px rgba(245,158,11,0.4)",
             }}
           >
-            ✓
+            <Check size={52} strokeWidth={3} className="text-white" />
           </div>
           <p className="font-khmer text-2xl font-bold text-amber-300">បានស្គែនរួចហើយ</p>
           <p className="font-khmer text-white/40 text-sm">ត្រឡប់ក្នុង 3 វិនាទី…</p>
@@ -481,7 +486,7 @@ export function KioskPage() {
               boxShadow: "0 0 40px rgba(220,38,38,0.4)",
             }}
           >
-            ✗
+            <X size={52} strokeWidth={3} className="text-white" />
           </div>
           <p className="font-khmer text-xl text-red-300 max-w-xs">{errMsg}</p>
           <p className="font-khmer text-white/30 text-sm">ត្រឡប់ក្នុង 4 វិនាទី…</p>
