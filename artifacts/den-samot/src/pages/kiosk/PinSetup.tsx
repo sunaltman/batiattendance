@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase, DS } from "../../lib/supabase";
 
 type Props = {
@@ -10,6 +10,23 @@ export function PinSetup({ onSetup }: Props) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  // true while we check if there's only one location (auto-select it, no PIN needed)
+  const [autoChecking, setAutoChecking] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from(DS.LOCATIONS)
+      .select("id, name")
+      .then(({ data }) => {
+        if (data && data.length === 1) {
+          localStorage.setItem("ds_location_id", data[0].id);
+          localStorage.setItem("ds_location_name", data[0].name);
+          onSetup(data[0].id, data[0].name);
+        } else {
+          setAutoChecking(false);
+        }
+      });
+  }, []);
 
   async function handleDigit(d: string) {
     if (pin.length >= 4) return;
@@ -38,16 +55,25 @@ export function PinSetup({ onSetup }: Props) {
 
   const digits = ["1","2","3","4","5","6","7","8","9","","0","⌫"] as const;
 
+  if (autoChecking) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(145deg, #0C1B2E 0%, #152840 50%, #0E1F35 100%)" }}
+      >
+        <div className="w-12 h-12 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-8 relative overflow-hidden"
       style={{ background: "linear-gradient(145deg, #0C1B2E 0%, #152840 50%, #0E1F35 100%)" }}
     >
-      {/* Ambient glow orbs */}
       <div className="absolute top-1/4 -left-40 w-96 h-96 rounded-full bg-brand/5 blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full bg-brand/4 blur-3xl pointer-events-none" />
 
-      {/* Logo with animated rings */}
       <div className="relative mb-8 flex items-center justify-center">
         <div className="absolute w-44 h-44 rounded-full border border-brand/12 animate-ping" style={{ animationDuration: "3.5s" }} />
         <div className="absolute w-40 h-40 rounded-full border border-brand/8 animate-ping" style={{ animationDuration: "2.8s", animationDelay: "0.8s" }} />
@@ -63,7 +89,6 @@ export function PinSetup({ onSetup }: Props) {
         <p className="font-khmer text-brand-light/70 text-sm mt-1">ប្រព័ន្ធគ្រប់គ្រងវត្តមាន</p>
       </div>
 
-      {/* Glass PIN card */}
       <div
         className={`w-80 rounded-3xl p-8 shadow-2xl ${shake ? "animate-shake" : ""}`}
         style={{
@@ -72,17 +97,11 @@ export function PinSetup({ onSetup }: Props) {
           border: "1px solid rgba(255,255,255,0.10)",
         }}
       >
-        <p className="font-khmer text-brand-light/70 text-center text-sm mb-6">
-          PIN ទីតាំង
-        </p>
+        <p className="font-khmer text-brand-light/70 text-center text-sm mb-6">PIN ទីតាំង</p>
 
-        {/* PIN dots */}
         <div className="flex gap-5 justify-center mb-6">
           {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="relative w-5 h-5 flex items-center justify-center"
-            >
+            <div key={i} className="relative w-5 h-5 flex items-center justify-center">
               <div className={`rounded-full border-2 transition-all duration-200 ${
                 pin.length > i
                   ? "w-5 h-5 bg-brand border-brand shadow-lg"
@@ -94,11 +113,8 @@ export function PinSetup({ onSetup }: Props) {
           ))}
         </div>
 
-        {error && (
-          <p className="font-khmer text-ds-red text-center text-xs mb-4">{error}</p>
-        )}
+        {error && <p className="font-khmer text-ds-red text-center text-xs mb-4">{error}</p>}
 
-        {/* Numpad */}
         {loading ? (
           <div className="flex flex-col items-center gap-3 py-6">
             <div className="w-10 h-10 rounded-full border-2 border-brand border-t-transparent animate-spin" />
