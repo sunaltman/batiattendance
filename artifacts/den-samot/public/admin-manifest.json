@@ -1,8 +1,9 @@
 {
-  "name": "Den Samot Attendance",
-  "short_name": "Den Samot",
-  "description": "Seafood chain attendance system",
-  "start_url": "/",
+  "name": "Den Samot Admin",
+  "short_name": "DS Admin",
+  "description": "Den Samot attendance admin panel",
+  "start_url": "/admin",
+  "scope": "/admin",
   "display": "standalone",
   "background_color": "#0C1B2E",
   "theme_color": "#0F1D30",
