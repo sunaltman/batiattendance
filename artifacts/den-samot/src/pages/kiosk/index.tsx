@@ -40,6 +40,16 @@ export function KioskPage() {
   const [errMsg, setErrMsg]     = useState("");
   const [confirm, setConfirm]   = useState<ConfirmInfo | null>(null);
   const [pendingScanId, setPendingScanId] = useState<string | null>(null);
+  const [clock, setClock]       = useState(() =>
+    new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+  );
+
+  useEffect(() => {
+    const t = setInterval(() =>
+      setClock(new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }))
+    , 15000);
+    return () => clearInterval(t);
+  }, []);
 
   const videoRef   = useRef<HTMLVideoElement>(null);
   const canvasRef  = useRef<HTMLCanvasElement>(null);
@@ -285,156 +295,198 @@ export function KioskPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   const emp = confirm?.employee;
 
-  return (
-    <div className="min-h-screen bg-ds-dark text-white flex flex-col items-center justify-center overflow-hidden select-none">
+  const bgStyle: React.CSSProperties = {
+    background: "linear-gradient(145deg, #040B3D 0%, #0C1870 50%, #060D4A 100%)",
+  };
 
-      {/* Always-mounted — canvas hidden, video shown only when scanning */}
+  return (
+    <div className="min-h-screen text-white flex flex-col items-center justify-center overflow-hidden select-none relative" style={bgStyle}>
+      {/* Ambient glow orbs — always present */}
+      <div className="absolute top-0 left-0 w-96 h-96 rounded-full bg-brand/10 blur-3xl pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-ds-red/8 blur-3xl pointer-events-none translate-x-1/2 translate-y-1/2" />
+
+      {/* Always-mounted canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* ── IDLE ─────────────────────────────────────────────────────────── */}
       {stage === "idle" && (
         <button
           onClick={beginScan}
-          className="flex flex-col items-center gap-6 p-12 rounded-3xl active:scale-95 transition-transform"
+          className="flex flex-col items-center gap-8 active:scale-95 transition-transform duration-150"
         >
+          {/* Logo with multi-ring pulse */}
           <div className="relative flex items-center justify-center">
-            <div className="w-48 h-48 rounded-full border-4 border-brand/30 absolute animate-pulse-ring" />
-            <div className="w-44 h-44 rounded-full border-4 border-ds-red p-1 relative">
+            <div className="absolute w-72 h-72 rounded-full border border-ds-red/15 animate-ping" style={{ animationDuration: "4s" }} />
+            <div className="absolute w-60 h-60 rounded-full border border-brand/20 animate-ping" style={{ animationDuration: "3s", animationDelay: "0.6s" }} />
+            <div className="absolute w-52 h-52 rounded-full border border-ds-red/25 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "1.2s" }} />
+            <div
+              className="relative w-44 h-44 rounded-full border-4 border-ds-red p-2 animate-glow-pulse"
+              style={{ background: "rgba(6,13,74,0.7)", backdropFilter: "blur(8px)" }}
+            >
               <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
             </div>
           </div>
-          <div className="text-center">
-            <p className="font-khmer text-3xl text-white font-semibold">ចុចដើម្បីចាប់ផ្ដើម</p>
-            <p className="font-khmer text-brand-light text-lg mt-2">ស្គែន QR ប័ណ្ណ</p>
+
+          {/* Clock */}
+          <p className="text-5xl font-bold text-white tracking-widest tabular-nums">{clock}</p>
+
+          <div className="text-center space-y-2">
+            <p className="font-khmer text-4xl font-bold text-white">ចុចដើម្បីចាប់ផ្ដើម</p>
+            <p className="font-khmer text-brand-light/70 text-lg">ស្គែន QR ប័ណ្ណបុគ្គលិក</p>
+          </div>
+
+          {/* Location badge */}
+          <div
+            className="px-6 py-2 rounded-full font-khmer text-sm text-ds-red/90"
+            style={{ background: "rgba(212,32,39,0.12)", border: "1px solid rgba(212,32,39,0.3)" }}
+          >
+            {LOCATION_NAME}
           </div>
         </button>
       )}
 
-      {/* ── SCANNING — video is always mounted, shown here via absolute overlay ── */}
+      {/* ── SCANNING ─────────────────────────────────────────────────────── */}
       <div style={{ display: stage === "scanning" ? "flex" : "none" }}
         className="flex-col items-center gap-6 w-full max-w-sm px-4">
-        <p className="font-khmer text-xl text-brand-light">
+        <p className="font-khmer text-lg text-brand-light/80 tracking-wide">
           ដាក់ប័ណ្ណ QR នៅចន្លោះស៊ុម
         </p>
-        <div className="relative w-72 h-72 border-2 border-brand rounded-2xl overflow-hidden bg-black">
-          <video
-            ref={videoRef} autoPlay muted playsInline
-            className="w-full h-full object-cover"
-          />
+        <div className="relative w-72 h-72 rounded-2xl overflow-hidden bg-black"
+          style={{ border: "2px solid rgba(26,50,212,0.6)", boxShadow: "0 0 30px rgba(26,50,212,0.2)" }}>
+          <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+          {/* Corner markers */}
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-2 left-2 w-8 h-8 border-l-4 border-t-4 border-brand rounded-tl-lg" />
-            <div className="absolute top-2 right-2 w-8 h-8 border-r-4 border-t-4 border-brand rounded-tr-lg" />
-            <div className="absolute bottom-2 left-2 w-8 h-8 border-l-4 border-b-4 border-brand rounded-bl-lg" />
-            <div className="absolute bottom-2 right-2 w-8 h-8 border-r-4 border-b-4 border-brand rounded-br-lg" />
-            <div className="absolute left-0 right-0 h-0.5 bg-brand/80 animate-[scan_2s_linear_infinite]" style={{ top: "50%" }} />
+            <div className="absolute top-3 left-3 w-10 h-10 border-l-4 border-t-4 border-brand rounded-tl-xl" />
+            <div className="absolute top-3 right-3 w-10 h-10 border-r-4 border-t-4 border-brand rounded-tr-xl" />
+            <div className="absolute bottom-3 left-3 w-10 h-10 border-l-4 border-b-4 border-brand rounded-bl-xl" />
+            <div className="absolute bottom-3 right-3 w-10 h-10 border-r-4 border-b-4 border-brand rounded-br-xl" />
+            {/* Scan line */}
+            <div className="absolute left-4 right-4 h-0.5 animate-scan"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(26,50,212,0.9), transparent)" }} />
           </div>
         </div>
-        <button onClick={resetToIdle} className="font-khmer text-brand-light/60 text-sm mt-2">
+        <button onClick={resetToIdle}
+          className="font-khmer text-brand-light/40 hover:text-brand-light/70 text-sm transition-colors mt-1">
           ចុចដើម្បីបោះបង់
         </button>
       </div>
 
       {/* ── VERIFYING ─────────────────────────────────────────────────────── */}
       {stage === "verifying" && (
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+        <div className="flex flex-col items-center gap-5 animate-fade-in-up">
+          <div className="relative w-24 h-24">
+            <div className="absolute inset-0 rounded-full border-4 border-brand/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+          </div>
           <p className="font-khmer text-xl text-brand-light">កំពុងត្រួតពិនិត្យ…</p>
         </div>
       )}
 
       {/* ── LATE PROMPT ──────────────────────────────────────────────────── */}
       {stage === "late_prompt" && emp && (
-        <div className="flex flex-col items-center gap-4 px-8 max-w-sm text-center">
-          <p className="text-5xl">⏰</p>
-          <p className="font-khmer text-2xl font-semibold text-amber-400">
-            {emp.name} — មកយឺត {confirm?.lateMinutes} នាទី
+        <div className="flex flex-col items-center gap-5 px-8 max-w-sm text-center animate-fade-in-up">
+          <div className="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center text-4xl">
+            ⏰
+          </div>
+          <p className="font-khmer text-2xl font-bold text-amber-400">
+            {emp.name}
+          </p>
+          <p className="font-khmer text-base text-white/80">
+            មកយឺត <span className="text-amber-400 font-bold">{confirm?.lateMinutes} នាទី</span>
           </p>
           <p className="font-khmer text-xl text-white">ហេតុអ្វីអ្នកមកធ្វើការយឺត?</p>
-          <VoiceRecorder
-            employeeId={emp.id}
-            scanId={pendingScanId!}
-            onDone={onLateAudioDone}
-          />
+          <VoiceRecorder employeeId={emp.id} scanId={pendingScanId!} onDone={onLateAudioDone} />
         </div>
       )}
 
       {/* ── CHEAT PROMPT ─────────────────────────────────────────────────── */}
       {stage === "cheat_prompt" && emp && (
-        <div className="flex flex-col items-center gap-4 px-8 max-w-sm text-center">
-          <p className="text-5xl">🚨</p>
-          <p className="font-khmer text-2xl font-semibold text-orange-400">{emp.name}</p>
-          <p className="font-khmer text-xl text-white">
+        <div className="flex flex-col items-center gap-5 px-8 max-w-sm text-center animate-fade-in-up">
+          <div className="w-20 h-20 rounded-full bg-ds-red/20 border-2 border-ds-red/50 flex items-center justify-center text-4xl">
+            🚨
+          </div>
+          <p className="font-khmer text-2xl font-bold text-white">{emp.name}</p>
+          <p className="font-khmer text-xl text-white/90">
             ហេតុអ្វីអ្នកមិនបានស្គែននៅម៉ោង ២ រសៀល?
           </p>
-          <VoiceRecorder
-            employeeId={emp.id}
-            scanId={pendingScanId!}
-            onDone={onCheatAudioDone}
-          />
+          <VoiceRecorder employeeId={emp.id} scanId={pendingScanId!} onDone={onCheatAudioDone} />
         </div>
       )}
 
       {/* ── SAVING ───────────────────────────────────────────────────────── */}
       {stage === "saving" && (
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-24 h-24 rounded-full border-4 border-ds-gold border-t-transparent animate-spin" />
-          <p className="font-khmer text-xl text-brand-light">កំពុងរក្សាទុក…</p>
+        <div className="flex flex-col items-center gap-5 animate-fade-in-up">
+          <div className="relative w-24 h-24">
+            <div className="absolute inset-0 rounded-full border-4 border-ds-gold/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-ds-gold border-t-transparent animate-spin" />
+          </div>
+          <p className="font-khmer text-xl text-ds-gold/80">កំពុងរក្សាទុក…</p>
         </div>
       )}
 
       {/* ── SUCCESS ──────────────────────────────────────────────────────── */}
       {stage === "success" && emp && confirm && (
-        <div className="flex flex-col items-center gap-6 px-8 text-center">
-          <div className={`w-28 h-28 rounded-full flex items-center justify-center text-5xl ${
-            confirm.scanType.endsWith("_in") ? "bg-green-500" : "bg-blue-500"
-          }`}>
+        <div className="flex flex-col items-center gap-6 px-8 text-center animate-fade-in-up">
+          <div
+            className={`w-32 h-32 rounded-full flex items-center justify-center text-6xl font-bold animate-bounce-in shadow-2xl ${
+              confirm.scanType.endsWith("_in")
+                ? "bg-gradient-to-br from-emerald-400 to-green-600"
+                : "bg-gradient-to-br from-brand to-brand-dark"
+            }`}
+            style={{
+              boxShadow: confirm.scanType.endsWith("_in")
+                ? "0 0 40px rgba(52,211,153,0.5)"
+                : "0 0 40px rgba(26,50,212,0.5)",
+            }}
+          >
             {confirm.scanType.endsWith("_in") ? "✓" : "→"}
           </div>
-          <div>
-            <p className="font-khmer text-3xl font-bold">{emp.name}</p>
-            <p className="font-khmer text-xl text-brand-light mt-1">
-              {SCAN_TYPE_LABEL_KH[confirm.scanType]}
-            </p>
+
+          <div className="space-y-2">
+            <p className="text-3xl font-bold text-white">{emp.name}</p>
+            <p className="font-khmer text-xl text-brand-light">{SCAN_TYPE_LABEL_KH[confirm.scanType]}</p>
             {confirm.isLate && (
-              <p className="font-khmer text-amber-400 mt-1">
-                ⚠️ យឺត {confirm.lateMinutes} នាទី
-              </p>
+              <p className="font-khmer text-amber-400 text-sm">⚠️ យឺត {confirm.lateMinutes} នាទី</p>
             )}
           </div>
-          <p className="font-khmer text-brand-light/60 text-sm">
-            ត្រឡប់ក្នុង 3 វិនាទី…
-          </p>
+
+          <p className="font-khmer text-white/30 text-sm">ត្រឡប់ក្នុង 3 វិនាទី…</p>
         </div>
       )}
 
       {/* ── ALREADY DONE ─────────────────────────────────────────────────── */}
       {stage === "already_done" && (
-        <div className="flex flex-col items-center gap-6 px-8 text-center">
-          <div className="w-28 h-28 rounded-full bg-amber-500 flex items-center justify-center text-5xl">
+        <div className="flex flex-col items-center gap-6 px-8 text-center animate-fade-in-up">
+          <div
+            className="w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold animate-bounce-in"
+            style={{
+              background: "linear-gradient(135deg, #f59e0b, #d97706)",
+              boxShadow: "0 0 40px rgba(245,158,11,0.4)",
+            }}
+          >
             ✓
           </div>
-          <p className="font-khmer text-2xl font-bold text-amber-300">
-            បានស្គែនរួចហើយ
-          </p>
-          <p className="font-khmer text-brand-light">ត្រឡប់ក្នុង 3 វិនាទី…</p>
+          <p className="font-khmer text-2xl font-bold text-amber-300">បានស្គែនរួចហើយ</p>
+          <p className="font-khmer text-white/40 text-sm">ត្រឡប់ក្នុង 3 វិនាទី…</p>
         </div>
       )}
 
       {/* ── ERROR ────────────────────────────────────────────────────────── */}
       {stage === "error" && (
-        <div className="flex flex-col items-center gap-6 px-8 text-center">
-          <div className="w-28 h-28 rounded-full bg-red-600 flex items-center justify-center text-5xl">
+        <div className="flex flex-col items-center gap-6 px-8 text-center animate-fade-in-up">
+          <div
+            className="w-32 h-32 rounded-full flex items-center justify-center text-5xl font-bold animate-bounce-in"
+            style={{
+              background: "linear-gradient(135deg, #dc2626, #991b1b)",
+              boxShadow: "0 0 40px rgba(220,38,38,0.4)",
+            }}
+          >
             ✗
           </div>
-          <p className="font-khmer text-xl text-red-300">{errMsg}</p>
-          <p className="font-khmer text-brand-light/60 text-sm">ត្រឡប់ក្នុង 4 វិនាទី…</p>
+          <p className="font-khmer text-xl text-red-300 max-w-xs">{errMsg}</p>
+          <p className="font-khmer text-white/30 text-sm">ត្រឡប់ក្នុង 4 វិនាទី…</p>
         </div>
       )}
-
-      {/* Location footer */}
-      <p className="absolute bottom-4 text-brand-light/40 text-xs font-khmer">
-        {LOCATION_NAME}
-      </p>
     </div>
   );
 }

@@ -9,6 +9,7 @@ export function PinSetup({ onSetup }: Props) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [shake, setShake] = useState(false);
 
   async function handleDigit(d: string) {
     if (pin.length >= 4) return;
@@ -25,7 +26,8 @@ export function PinSetup({ onSetup }: Props) {
       setLoading(false);
       if (dbErr || !data) {
         setError("PIN មិនត្រូវ — សូមព្យាយាមម្ដងទៀត");
-        setPin("");
+        setShake(true);
+        setTimeout(() => { setShake(false); setPin(""); }, 600);
       } else {
         localStorage.setItem("ds_location_id", data.id);
         localStorage.setItem("ds_location_name", data.name);
@@ -37,53 +39,99 @@ export function PinSetup({ onSetup }: Props) {
   const digits = ["1","2","3","4","5","6","7","8","9","","0","⌫"] as const;
 
   return (
-    <div className="min-h-screen bg-ds-dark flex flex-col items-center justify-center px-8">
-      <div className="mb-10 text-center">
-        <img src="/logo.png" alt="Den Samot" className="w-28 h-28 mx-auto mb-4 rounded-full object-cover" />
-        <p className="font-khmer text-brand-light text-lg">បញ្ចូល PIN ទីតាំង</p>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-8 relative overflow-hidden"
+      style={{ background: "linear-gradient(145deg, #040B3D 0%, #0C1870 50%, #060D4A 100%)" }}
+    >
+      {/* Ambient glow orbs */}
+      <div className="absolute top-1/4 -left-40 w-96 h-96 rounded-full bg-brand/15 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-40 w-96 h-96 rounded-full bg-ds-red/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-3/4 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full bg-ds-gold/5 blur-3xl pointer-events-none" />
+
+      {/* Logo with animated rings */}
+      <div className="relative mb-8 flex items-center justify-center">
+        <div className="absolute w-44 h-44 rounded-full border border-ds-red/20 animate-ping" style={{ animationDuration: "3.5s" }} />
+        <div className="absolute w-40 h-40 rounded-full border border-brand/25 animate-ping" style={{ animationDuration: "2.8s", animationDelay: "0.8s" }} />
+        <div className="relative w-32 h-32 rounded-full border-4 border-ds-red p-1.5 bg-ds-dark/60 backdrop-blur-sm animate-glow-pulse">
+          <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
+        </div>
       </div>
 
-      {/* PIN display */}
-      <div className="flex gap-4 mb-8">
-        {[0,1,2,3].map((i) => (
-          <div key={i}
-            className={`w-14 h-14 rounded-xl border-2 flex items-center justify-center text-2xl transition-all ${
-              pin.length > i ? "bg-brand border-brand text-white" : "bg-white/10 border-white/30 text-transparent"
-            }`}
-          >
-            ●
-          </div>
-        ))}
+      <div className="text-center mb-8">
+        <h1 className="text-white text-2xl font-bold tracking-widest uppercase" style={{ fontFamily: "Georgia, serif" }}>
+          Den Samot
+        </h1>
+        <p className="font-khmer text-brand-light/50 text-sm mt-1 tracking-wide">ប្រព័ន្ធគ្រប់គ្រងវត្តមាន</p>
       </div>
 
-      {error && (
-        <p className="font-khmer text-red-400 text-center mb-6 text-sm">{error}</p>
-      )}
+      {/* Glass PIN card */}
+      <div
+        className={`w-80 rounded-3xl p-8 shadow-2xl ${shake ? "animate-shake" : ""}`}
+        style={{
+          background: "rgba(255,255,255,0.06)",
+          backdropFilter: "blur(24px)",
+          border: "1px solid rgba(255,255,255,0.10)",
+        }}
+      >
+        <p className="font-khmer text-brand-light/50 text-center text-xs mb-6 tracking-widest uppercase">
+          PIN ទីតាំង
+        </p>
 
-      {/* Numpad */}
-      {loading ? (
-        <div className="text-white font-khmer text-xl animate-pulse">កំពុងពិនិត្យ…</div>
-      ) : (
-        <div className="grid grid-cols-3 gap-3 w-64">
-          {digits.map((d, i) => (
-            <button
+        {/* PIN dots */}
+        <div className="flex gap-5 justify-center mb-6">
+          {[0, 1, 2, 3].map((i) => (
+            <div
               key={i}
-              disabled={d === ""}
-              onClick={() => {
-                if (d === "⌫") { setPin((p) => p.slice(0, -1)); setError(""); }
-                else if (d !== "") handleDigit(d);
-              }}
-              className={`h-16 rounded-2xl text-2xl font-semibold transition-all active:scale-95 ${
-                d === "" ? "invisible" :
-                d === "⌫" ? "bg-white/10 text-white/60 hover:bg-white/20" :
-                "bg-white/15 text-white hover:bg-brand active:bg-brand-dark"
-              }`}
+              className="relative w-5 h-5 flex items-center justify-center"
             >
-              {d}
-            </button>
+              <div className={`rounded-full border-2 transition-all duration-200 ${
+                pin.length > i
+                  ? "w-5 h-5 bg-brand border-brand shadow-lg"
+                  : "w-4 h-4 border-white/30 bg-transparent"
+              }`}
+                style={pin.length > i ? { boxShadow: "0 0 12px rgba(26,50,212,0.8)" } : {}}
+              />
+            </div>
           ))}
         </div>
-      )}
+
+        {error && (
+          <p className="font-khmer text-ds-red text-center text-xs mb-4">{error}</p>
+        )}
+
+        {/* Numpad */}
+        {loading ? (
+          <div className="flex flex-col items-center gap-3 py-6">
+            <div className="w-10 h-10 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+            <p className="font-khmer text-brand-light/50 text-sm">កំពុងពិនិត្យ…</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2.5">
+            {digits.map((d, i) => (
+              <button
+                key={i}
+                disabled={d === ""}
+                onClick={() => {
+                  if (d === "⌫") { setPin((p) => p.slice(0, -1)); setError(""); }
+                  else if (d !== "") handleDigit(d);
+                }}
+                className={`h-14 rounded-2xl text-xl font-semibold transition-all duration-100 active:scale-90 ${
+                  d === "" ? "invisible" :
+                  d === "⌫"
+                    ? "text-white/40 hover:text-white/70"
+                    : "text-white hover:bg-brand/30 active:bg-brand active:shadow-lg"
+                }`}
+                style={d !== "" && d !== "⌫" ? {
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                } : {}}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

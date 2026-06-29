@@ -55,7 +55,8 @@ export default function App() {
 
 function Spinner() {
   return (
-    <div className="min-h-screen bg-ds-dark flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center"
+      style={{ background: "linear-gradient(145deg, #040B3D 0%, #0C1870 50%, #060D4A 100%)" }}>
       <div className="w-16 h-16 rounded-full border-4 border-brand border-t-transparent animate-spin" />
     </div>
   );
@@ -78,25 +79,42 @@ function AdminShell({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-ds-dark text-white px-6 py-4 flex items-center justify-between">
+      <header
+        className="text-white px-6 py-3 flex items-center justify-between shadow-lg"
+        style={{
+          background: "linear-gradient(135deg, #040B3D 0%, #0C1870 100%)",
+          borderBottom: "1px solid rgba(26,50,212,0.3)",
+        }}
+      >
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Den Samot" className="w-9 h-9 rounded-full object-cover" />
-          <span className="font-bold text-lg" style={{ fontFamily: "Georgia, serif" }}>Den Samot</span>
+          <div className="w-9 h-9 rounded-full border-2 border-ds-red/60 p-0.5" style={{ boxShadow: "0 0 10px rgba(212,32,39,0.3)" }}>
+            <img src="/logo.png" alt="Den Samot" className="w-full h-full rounded-full object-cover" />
+          </div>
+          <span className="font-bold text-base tracking-wide" style={{ fontFamily: "Georgia, serif" }}>Den Samot</span>
         </div>
         <nav className="flex gap-1">
           {navItems.map((n) => (
             <button
               key={n.id}
               onClick={() => onRoute(n.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-khmer transition-colors ${
-                route === n.id ? "bg-brand text-white" : "text-brand-light hover:bg-white/10"
+              className={`px-3 py-1.5 rounded-lg text-xs font-khmer transition-all ${
+                route === n.id
+                  ? "text-white"
+                  : "text-white/50 hover:text-white hover:bg-white/8"
               }`}
+              style={route === n.id ? {
+                background: "linear-gradient(135deg, rgba(26,50,212,0.6), rgba(212,32,39,0.3))",
+                border: "1px solid rgba(26,50,212,0.4)",
+              } : {}}
             >
               {n.emoji} {n.label}
             </button>
           ))}
         </nav>
-        <button onClick={onLogout} className="text-brand-light/60 hover:text-white text-sm font-khmer">
+        <button
+          onClick={onLogout}
+          className="text-white/30 hover:text-white/70 text-xs font-khmer transition-colors"
+        >
           ចាកចេញ
         </button>
       </header>
