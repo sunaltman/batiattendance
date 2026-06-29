@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { supabase, getTodayDate, DS } from "../../lib/supabase";
+import { AlertCircle, Clock, Mic, CheckCircle, CheckCircle2 } from "lucide-react";
+import { supabase, DS } from "../../lib/supabase";
 import type { Scan } from "../../lib/supabase";
 
 type FlaggedScan = Scan & { employees: { name: string } | null };
 
 export function LateReasonsPage({ locationId }: { locationId: string }) {
-  const [scans, setScans]   = useState<FlaggedScan[]>([]);
+  const [scans, setScans]     = useState<FlaggedScan[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +19,6 @@ export function LateReasonsPage({ locationId }: { locationId: string }) {
   }, [locationId]);
 
   async function dismiss(id: string) {
-    // Mark as reviewed by clearing flags (but keeping record)
     await supabase.from(DS.SCANS).update({ is_late: false, missing_afternoon_in: false }).eq("id", id);
     setScans((prev) => prev.filter((s) => s.id !== id));
   }
@@ -33,27 +33,27 @@ export function LateReasonsPage({ locationId }: { locationId: string }) {
 
       {scans.length === 0 && (
         <div className="text-center py-16">
-          <p className="text-4xl mb-3">✅</p>
+          <CheckCircle2 size={48} className="text-green-400 mx-auto mb-3" />
           <p className="font-khmer text-muted-foreground">គ្មានការព្រមានដែលលោត</p>
         </div>
       )}
 
       <div className="space-y-4">
         {scans.map((s) => (
-          <div key={s.id} className={`bg-card border rounded-2xl p-4 ${
+          <div key={s.id} className={`bg-white border rounded-2xl p-4 shadow-sm ${
             s.missing_afternoon_in ? "border-orange-300" : "border-amber-300"
           }`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   {s.missing_afternoon_in && (
-                    <span className="text-xs bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">
-                      🚨 ខ្វះ ចូល(រសៀល)
+                    <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">
+                      <AlertCircle size={10} /> ខ្វះ ចូល(រសៀល)
                     </span>
                   )}
                   {s.is_late && (
-                    <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
-                      ⏰ យឺត {s.late_minutes} នាទី
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">
+                      <Clock size={10} /> យឺត {s.late_minutes} នាទី
                     </span>
                   )}
                 </div>
@@ -64,7 +64,9 @@ export function LateReasonsPage({ locationId }: { locationId: string }) {
 
                 {s.late_reason_audio_url && (
                   <div className="mt-3">
-                    <p className="font-khmer text-xs text-muted-foreground mb-1">🎙 ការពន្យល់:</p>
+                    <p className="font-khmer text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                      <Mic size={10} /> ការពន្យល់:
+                    </p>
                     <audio controls src={s.late_reason_audio_url} className="w-full h-10" />
                   </div>
                 )}
@@ -75,9 +77,9 @@ export function LateReasonsPage({ locationId }: { locationId: string }) {
 
               <button
                 onClick={() => dismiss(s.id)}
-                className="shrink-0 text-xs bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg font-khmer hover:bg-green-100 transition-colors"
+                className="shrink-0 inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-lg font-khmer hover:bg-green-100 transition-colors"
               >
-                ✓ ដោះស្រាយ
+                <CheckCircle size={12} /> ដោះស្រាយ
               </button>
             </div>
           </div>

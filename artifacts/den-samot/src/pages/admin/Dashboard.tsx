@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AlertTriangle, XCircle } from "lucide-react";
 import { supabase, getTodayDate, DS } from "../../lib/supabase";
 import type { Scan } from "../../lib/supabase";
 import { SCAN_TYPE_LABEL_KH } from "../../lib/scan-logic";
@@ -52,7 +53,7 @@ export function Dashboard({ locationId }: { locationId: string }) {
       {/* Flags */}
       {lateScans.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <h3 className="font-khmer font-semibold text-amber-800 mb-3">⚠️ ការព្រមាន ({lateScans.length})</h3>
+          <h3 className="font-khmer font-semibold text-amber-800 mb-3 flex items-center gap-2"><AlertTriangle size={16} /> ការព្រមាន ({lateScans.length})</h3>
           <ul className="space-y-1">
             {lateScans.map((s) => (
               <li key={s.id} className="font-khmer text-sm text-amber-700 flex gap-2">
@@ -68,7 +69,7 @@ export function Dashboard({ locationId }: { locationId: string }) {
       {/* Absent */}
       {absentToday.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
-          <h3 className="font-khmer font-semibold text-red-800 mb-3">❌ អវត្តមាន ({absentToday.length})</h3>
+          <h3 className="font-khmer font-semibold text-red-800 mb-3 flex items-center gap-2"><XCircle size={16} /> អវត្តមាន ({absentToday.length})</h3>
           <ul className="space-y-1">
             {absentToday.map((e) => (
               <li key={e.id} className="font-khmer text-sm text-red-700">• {e.name}</li>
