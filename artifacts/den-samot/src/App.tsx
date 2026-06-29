@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Toaster } from "sonner";
+import { WifiOff } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import { PinSetup } from "./pages/kiosk/PinSetup";
@@ -10,6 +12,23 @@ import { ReportsPage } from "./pages/admin/Reports";
 import { LateReasonsPage } from "./pages/admin/LateReasons";
 
 type AdminRoute = "dashboard" | "employees" | "reports" | "late-reasons";
+
+function OfflineBanner() {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const up = () => setOnline(true);
+    const dn = () => setOnline(false);
+    window.addEventListener("online", up);
+    window.addEventListener("offline", dn);
+    return () => { window.removeEventListener("online", up); window.removeEventListener("offline", dn); };
+  }, []);
+  if (online) return null;
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white text-sm font-khmer font-semibold flex items-center justify-center gap-2 py-2 px-4">
+      <WifiOff size={16} /> គ្មានអ៊ីនធឺណិត — ការស្គែនមិនអាចកត់ត្រាបានទេ
+    </div>
+  );
+}
 
 function isAdminPath() {
   return window.location.pathname.startsWith("/admin");
@@ -39,12 +58,16 @@ export default function App() {
     const locationId = (session.user.user_metadata?.location_id ?? "") as string;
 
     return (
-      <AdminShell route={adminRoute} onRoute={setAdminRoute} onLogout={() => supabase.auth.signOut()}>
-        {adminRoute === "dashboard"    && <Dashboard locationId={locationId} />}
-        {adminRoute === "employees"    && <EmployeesPage locationId={locationId} />}
-        {adminRoute === "reports"      && <ReportsPage locationId={locationId} />}
-        {adminRoute === "late-reasons" && <LateReasonsPage locationId={locationId} />}
-      </AdminShell>
+      <>
+        <OfflineBanner />
+        <Toaster position="top-center" richColors toastOptions={{ duration: 3500 }} />
+        <AdminShell route={adminRoute} onRoute={setAdminRoute} onLogout={() => supabase.auth.signOut()}>
+          {adminRoute === "dashboard"    && <Dashboard locationId={locationId} />}
+          {adminRoute === "employees"    && <EmployeesPage locationId={locationId} />}
+          {adminRoute === "reports"      && <ReportsPage locationId={locationId} />}
+          {adminRoute === "late-reasons" && <LateReasonsPage locationId={locationId} />}
+        </AdminShell>
+      </>
     );
   }
 
